@@ -1,166 +1,415 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { FiSettings, FiEdit3, FiFileText, FiZap, FiRotateCcw, FiFolder, FiPlus } from 'react-icons/fi';
+import { toast } from 'sonner';
 import FormComponent from '../components/FormComponent';
 import TemplateEditor from '../components/TemplateEditor';
 import PromptDisplay from '../components/PromptDisplay';
+import Dashboard, { PromptProject } from '../components/Dashboard';
+import ProjectEditor from '../components/ProjectEditor';
 
 type FormData = {
   [key: string]: string;
 };
 
 export default function Home() {
-  const [currentStep, setCurrentStep] = useState<'form' | 'template' | 'result'>('form');
-  const [availableVariables, setAvailableVariables] = useState([
-    'producto',
-    'publicoObjetivo',
-    'objetivo',
-    'tono',
-    'restricciones'
-  ]);
-  const [formData, setFormData] = useState<FormData>(() => {
-    const initialData: FormData = {};
-    availableVariables.forEach(variable => {
-      initialData[variable] = '';
-    });
-    return initialData;
-  });
-  const [template, setTemplate] = useState(`Eres un experto en marketing digital especializado en {producto}.
+  const [currentTab, setCurrentTab] = useState('dashboard');
+  const [projects, setProjects] = useState<PromptProject[]>([]);
+  const [currentProject, setCurrentProject] = useState<PromptProject | null>(null);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [editingProject, setEditingProject] = useState<PromptProject | null>(null);
 
-Tu objetivo es crear contenido que resuene con {publicoObjetivo} para lograr {objetivo}.
+  // Load projects from localStorage on mount
+  useEffect(() => {
+    const savedProjects = localStorage.getItem('prompt-projects');
+    if (savedProjects) {
+      try {
+        const parsedProjects = JSON.parse(savedProjects).map((project: any) => ({
+          ...project,
+          createdAt: new Date(project.createdAt),
+          updatedAt: new Date(project.updatedAt)
+        }));
+        setProjects(parsedProjects);
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      }
+    }
+  }, []);
 
-Tono: {tono}
+  // Save projects to localStorage whenever projects change
+  useEffect(() => {
+    if (projects.length > 0) {
+      localStorage.setItem('prompt-projects', JSON.stringify(projects));
+    }
+  }, [projects]);
 
-Restricciones: {restricciones}
+  // Project management functions
+  const createProject = (projectData: Omit<PromptProject, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newProject: PromptProject = {
+      ...projectData,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    setProjects([...projects, newProject]);
+    setCurrentProject(newProject);
+    setIsCreatingProject(false);
+    setCurrentTab('form');
+  };
 
-Por favor, proporciona una estrategia detallada y creativa.`);
-  const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const updateProject = (projectData: Omit<PromptProject, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!editingProject) return;
+    
+    const updatedProject: PromptProject = {
+      ...editingProject,
+      ...projectData,
+      updatedAt: new Date()
+    };
+    
+    setProjects(projects.map(p => p.id === editingProject.id ? updatedProject : p));
+    setEditingProject(null);
+    
+    // Update current project if it's the same one being edited
+    if (currentProject && currentProject.id === editingProject.id) {
+      setCurrentProject(updatedProject);
+    }
+  };
 
+  const deleteProject = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      setProjects(projects.filter(p => p.id !== projectId));
+      
+      // If the deleted project is currently open, go back to dashboard
+      if (currentProject && currentProject.id === projectId) {
+        setCurrentProject(null);
+        setCurrentTab('dashboard');
+      }
+    }
+  };
+
+  const openProject = (project: PromptProject) => {
+    setCurrentProject(project);
+    setCurrentTab('form');
+  };
+
+  // Form handling functions
   const handleFormSubmit = (data: FormData) => {
-    setFormData(data);
-    setCurrentStep('template');
+    if (!currentProject) return;
+    
+    const updatedProject = {
+      ...currentProject,
+      formData: data,
+      updatedAt: new Date()
+    };
+    
+    setCurrentProject(updatedProject);
+    setProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
+    setCurrentTab('template');
   };
 
   const handleTemplateSubmit = (templateText: string) => {
-    setTemplate(templateText);
-    setCurrentStep('result');
+    if (!currentProject) return;
+    
+    const updatedProject = {
+      ...currentProject,
+      template: templateText,
+      updatedAt: new Date()
+    };
+    
+    setCurrentProject(updatedProject);
+    setProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
+    setCurrentTab('result');
   };
 
   const addVariable = (variableName: string) => {
-    if (variableName.trim() && !availableVariables.includes(variableName.trim())) {
+    if (!currentProject) return;
+    
+    if (variableName.trim() && !currentProject.availableVariables.includes(variableName.trim())) {
       const newVariable = variableName.trim();
-      setAvailableVariables([...availableVariables, newVariable]);
-      setFormData({...formData, [newVariable]: ''});
+      const updatedProject = {
+        ...currentProject,
+        availableVariables: [...currentProject.availableVariables, newVariable],
+        formData: {...currentProject.formData, [newVariable]: ''},
+        updatedAt: new Date()
+      };
+      
+      setCurrentProject(updatedProject);
+      setProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
     }
   };
 
   const deleteVariable = (variableName: string) => {
-    const updatedVariables = availableVariables.filter(v => v !== variableName);
-    setAvailableVariables(updatedVariables);
+    if (!currentProject) return;
     
-    // Remove from formData
-    const {[variableName]: removed, ...restFormData} = formData;
-    setFormData(restFormData);
-    
-    // Remove from template
+    const updatedVariables = currentProject.availableVariables.filter(v => v !== variableName);
+    const {[variableName]: removed, ...restFormData} = currentProject.formData;
     const variablePattern = `{${variableName}}`;
-    setTemplate(template.replace(new RegExp(variablePattern.replace(/[{}]/g, '\\$&'), 'g'), ''));
+    const updatedTemplate = currentProject.template.replace(new RegExp(variablePattern.replace(/[{}]/g, '\\$&'), 'g'), '');
+    
+    const updatedProject = {
+      ...currentProject,
+      availableVariables: updatedVariables,
+      formData: restFormData,
+      template: updatedTemplate,
+      updatedAt: new Date()
+    };
+    
+    setCurrentProject(updatedProject);
+    setProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
   };
 
   const updateVariable = (oldName: string, newName: string) => {
-    if (newName.trim() && (newName.trim() === oldName || !availableVariables.includes(newName.trim()))) {
-      const updatedVariables = availableVariables.map(v => v === oldName ? newName.trim() : v);
-      setAvailableVariables(updatedVariables);
-      
-      // Update in formData
-      const {[oldName]: value, ...restFormData} = formData;
-      setFormData({...restFormData, [newName.trim()]: value});
-      
-      // Update in template
+    if (!currentProject) return;
+    
+    if (newName.trim() && (newName.trim() === oldName || !currentProject.availableVariables.includes(newName.trim()))) {
+      const updatedVariables = currentProject.availableVariables.map(v => v === oldName ? newName.trim() : v);
+      const {[oldName]: value, ...restFormData} = currentProject.formData;
       const oldPattern = `{${oldName}}`;
       const newPattern = `{${newName.trim()}}`;
-      setTemplate(template.replace(new RegExp(oldPattern.replace(/[{}]/g, '\\$&'), 'g'), newPattern));
+      const updatedTemplate = currentProject.template.replace(new RegExp(oldPattern.replace(/[{}]/g, '\\$&'), 'g'), newPattern);
+      
+      const updatedProject = {
+        ...currentProject,
+        availableVariables: updatedVariables,
+        formData: {...restFormData, [newName.trim()]: value},
+        template: updatedTemplate,
+        updatedAt: new Date()
+      };
+      
+      setCurrentProject(updatedProject);
+      setProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
     }
   };
 
   const generatePrompt = () => {
-    let prompt = template;
-    availableVariables.forEach(variable => {
+    if (!currentProject) return;
+    
+    let prompt = currentProject.template;
+    currentProject.availableVariables.forEach(variable => {
       const variablePattern = `{${variable}}`;
-      const value = formData[variable] || '';
+      const value = currentProject.formData[variable] || '';
       prompt = prompt.replace(new RegExp(variablePattern.replace(/[{}]/g, '\\$&'), 'g'), value);
     });
-    setGeneratedPrompt(prompt);
+    
+    const updatedProject = {
+      ...currentProject,
+      generatedPrompt: prompt,
+      updatedAt: new Date()
+    };
+    
+    setCurrentProject(updatedProject);
+    setProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
+    toast.success(`Prompt generado para "${currentProject.name}"`);
   };
 
-  const resetApp = () => {
-    setCurrentStep('form');
+  const resetProject = () => {
+    if (!currentProject) return;
+    
     const resetData: FormData = {};
-    availableVariables.forEach(variable => {
+    currentProject.availableVariables.forEach(variable => {
       resetData[variable] = '';
     });
-    setFormData(resetData);
-    setGeneratedPrompt('');
+    
+    const updatedProject = {
+      ...currentProject,
+      formData: resetData,
+      generatedPrompt: '',
+      updatedAt: new Date()
+    };
+    
+    setCurrentProject(updatedProject);
+    setProjects(projects.map(p => p.id === currentProject.id ? updatedProject : p));
+    setCurrentTab('form');
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-white text-black">
       <div className="container mx-auto px-4 py-8">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-center mb-2">Form → Prompt Builder</h1>
-          <p className="text-gray-400 text-center">Crea prompts personalizados con formularios dinámicos</p>
-          <div className="flex justify-center gap-4 mt-4">
-            <button
-              onClick={() => setCurrentStep('form')}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-            >
-              Preguntas
-            </button>
-            <button
-              onClick={() => setCurrentStep('template')}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-            >
-              Editor de Template
-            </button>
-            <button
-              onClick={() => setCurrentStep('result')}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-            >
-              Prompt Display
-            </button>
+        {/* Header */}
+        <header className="mb-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 bg-blue-100 rounded-xl border border-blue-200">
+              <FiZap className="w-8 h-8 text-blue-600" />
+            </div>
+            <h1 className="text-4xl font-bold text-black">
+              Prompt Generator
+            </h1>
           </div>
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+            Crea prompts personalizados y potentes con formularios dinámicos y templates inteligentes
+          </p>
         </header>
 
-        <div className="max-w-4xl mx-auto">
-          {currentStep === 'form' && (
-            <FormComponent 
-              onSubmit={handleFormSubmit}
-              availableVariables={availableVariables}
-              formData={formData}
+        {/* Main Content with Tabs */}
+        <div className="max-w-6xl mx-auto">
+          {isCreatingProject ? (
+            <ProjectEditor
+              onSave={createProject}
+              onCancel={() => setIsCreatingProject(false)}
             />
-          )}
-          
-          {currentStep === 'template' && (
-            <TemplateEditor 
-              template={template}
-              onSubmit={handleTemplateSubmit}
-              onBack={() => setCurrentStep('form')}
-              availableVariables={availableVariables}
-              onAddVariable={addVariable}
-              onDeleteVariable={deleteVariable}
-              onUpdateVariable={updateVariable}
+          ) : editingProject ? (
+            <ProjectEditor
+              project={editingProject}
+              onSave={updateProject}
+              onCancel={() => setEditingProject(null)}
+              isEditing={true}
             />
-          )}
-          
-          {currentStep === 'result' && (
-            <PromptDisplay 
-              prompt={generatedPrompt}
-              onGenerate={generatePrompt}
-              onBack={() => setCurrentStep('template')}
-              onReset={resetApp}
-            />
+          ) : (
+            <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
+              <TabsList className={`grid w-full ${currentProject ? 'grid-cols-4' : 'grid-cols-1'} bg-gray-100 border border-gray-200`}>
+                <TabsTrigger 
+                  value="dashboard" 
+                  className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200"
+                >
+                  <FiFolder className="w-4 h-4" />
+                  <span className="hidden sm:inline">Dashboard</span>
+                  <span className="sm:hidden">Dash</span>
+                </TabsTrigger>
+                {currentProject && (
+                  <>
+                    <TabsTrigger 
+                      value="form" 
+                      className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200"
+                    >
+                      <FiSettings className="w-4 h-4" />
+                      <span className="hidden sm:inline">Configuración</span>
+                      <span className="sm:hidden">Config</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="template"
+                      className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200"
+                    >
+                      <FiEdit3 className="w-4 h-4" />
+                      <span className="hidden sm:inline">Editor</span>
+                      <span className="sm:hidden">Edit</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="result"
+                      className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200"
+                    >
+                      <FiFileText className="w-4 h-4" />
+                      <span className="hidden sm:inline">Resultado</span>
+                      <span className="sm:hidden">Result</span>
+                    </TabsTrigger>
+                  </>
+                )}
+              </TabsList>
+
+              <TabsContent value="dashboard" className="mt-0">
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
+                  <Dashboard
+                    projects={projects}
+                    onCreateProject={() => setIsCreatingProject(true)}
+                    onEditProject={setEditingProject}
+                    onDeleteProject={deleteProject}
+                    onOpenProject={openProject}
+                  />
+                </div>
+              </TabsContent>
+
+              {currentProject && (
+                <>
+                  <TabsContent value="form" className="mt-0">
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
+                      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold text-blue-900">{currentProject.name}</h3>
+                            <p className="text-sm text-blue-700">{currentProject.description}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setCurrentProject(null);
+                              setCurrentTab('dashboard');
+                            }}
+                            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+                          >
+                            ← Volver al Dashboard
+                          </button>
+                        </div>
+                      </div>
+                      <FormComponent 
+                        onSubmit={handleFormSubmit}
+                        availableVariables={currentProject.availableVariables}
+                        formData={currentProject.formData}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="template" className="mt-0">
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
+                      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold text-blue-900">{currentProject.name}</h3>
+                            <p className="text-sm text-blue-700">{currentProject.description}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setCurrentProject(null);
+                              setCurrentTab('dashboard');
+                            }}
+                            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+                          >
+                            ← Volver al Dashboard
+                          </button>
+                        </div>
+                      </div>
+                      <TemplateEditor 
+                        template={currentProject.template}
+                        onSubmit={handleTemplateSubmit}
+                        onBack={() => setCurrentTab('form')}
+                        availableVariables={currentProject.availableVariables}
+                        onAddVariable={addVariable}
+                        onDeleteVariable={deleteVariable}
+                        onUpdateVariable={updateVariable}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="result" className="mt-0">
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
+                      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold text-blue-900">{currentProject.name}</h3>
+                            <p className="text-sm text-blue-700">{currentProject.description}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setCurrentProject(null);
+                              setCurrentTab('dashboard');
+                            }}
+                            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+                          >
+                            ← Volver al Dashboard
+                          </button>
+                        </div>
+                      </div>
+                      <PromptDisplay 
+                        prompt={currentProject.generatedPrompt}
+                        onGenerate={generatePrompt}
+                        onBack={() => setCurrentTab('template')}
+                        onReset={resetProject}
+                      />
+                    </div>
+                  </TabsContent>
+                </>
+              )}
+            </Tabs>
           )}
         </div>
+
+        {/* Footer */}
+        <footer className="mt-12 text-center">
+          <div className="flex items-center justify-center gap-2 text-gray-600">
+            <FiRotateCcw className="w-4 h-4" />
+            <span className="text-sm">Hecho con Next.js y shadcn/ui</span>
+          </div>
+        </footer>
       </div>
     </div>
   );
