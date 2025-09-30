@@ -1,0 +1,152 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { FiArrowRight, FiCheck, FiAlertCircle, FiPlus } from 'react-icons/fi';
+import { Button } from '@/components/ui/button';
+
+type FormData = {
+  [key: string]: string;
+};
+
+type FormComponentProps = {
+  availableVariables: string[];
+  formData: FormData;
+  onGeneratePrompt: (formData: FormData) => void;
+};
+
+export default function FormComponent({ availableVariables, formData: propFormData, onGeneratePrompt }: FormComponentProps) {
+  const [formData, setFormData] = useState<FormData>(propFormData);
+  const [errors, setErrors] = useState<Partial<FormData>>({});
+
+  useEffect(() => {
+    setFormData(propFormData);
+  }, [propFormData]);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<FormData> = {};
+    
+    // Validate required fields (first 4 are required by default)
+    const requiredFields = availableVariables.slice(0, 4);
+    requiredFields.forEach(field => {
+      if (!formData[field]?.trim()) {
+        const fieldLabels: { [key: string]: string } = {
+          'producto': 'El producto es requerido',
+          'publicoObjetivo': 'El público objetivo es requerido',
+          'objetivo': 'El objetivo es requerido',
+          'tono': 'El tono es requerido'
+        };
+        newErrors[field] = fieldLabels[field] || `El campo ${field} es requerido`;
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleGeneratePrompt = () => {
+    console.log('FormComponent - formData actual:', formData);
+    console.log('FormComponent - validateForm result:', validateForm());
+    
+    if (validateForm()) {
+      console.log('FormComponent - llamando onGeneratePrompt con:', formData);
+      onGeneratePrompt(formData);
+    }
+  };
+
+  const getFieldConfig = (variable: string) => {
+    const fieldLabels: { [key: string]: string } = {
+      'producto': 'Producto/Servicio',
+      'publicoObjetivo': 'Público Objetivo',
+      'objetivo': 'Objetivo',
+      'tono': 'Tono',
+      'restricciones': 'Restricciones'
+    };
+
+    const fieldPlaceholders: { [key: string]: string } = {
+      'producto': 'Ej: Aplicación móvil de fitness',
+      'publicoObjetivo': 'Ej: Personas de 25-40 años interesadas en salud',
+      'objetivo': 'Ej: Aumentar las descargas en un 50%',
+      'tono': 'Ej: Profesional, motivacional, casual',
+      'restricciones': 'Ej: Máximo 500 palabras, evitar jerga técnica'
+    };
+
+    return {
+      key: variable,
+      label: fieldLabels[variable] || variable.charAt(0).toUpperCase() + variable.slice(1),
+      placeholder: fieldPlaceholders[variable] || `Ingresa ${variable}`,
+      required: availableVariables.indexOf(variable) < 4 // First 4 are required
+    };
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-blue-100 rounded-lg border border-blue-200">
+          <FiCheck className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-semibold text-black">Configuración del Prompt</h2>
+          <p className="text-gray-600 text-sm">Completa los campos para personalizar tu prompt</p>
+        </div>
+      </div>
+      
+      <div className="space-y-6">
+        {availableVariables.map((variable) => {
+          const field = getFieldConfig(variable);
+          return (
+            <div key={field.key} className="group">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                {field.required && <FiAlertCircle className="w-4 h-4 text-red-500" />}
+                {field.label}
+                {field.required && <span className="text-red-500 text-xs">(requerido)</span>}
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formData[field.key] || ''}
+                  onChange={(e) => handleInputChange(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  className={`w-full px-4 py-3 bg-white border rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                    errors[field.key] 
+                      ? 'border-red-500 bg-red-50' 
+                      : 'border-gray-300 hover:border-gray-400 group-focus-within:border-blue-500'
+                  }`}
+                />
+                {formData[field.key] && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <FiCheck className="w-4 h-4 text-green-500" />
+                  </div>
+                )}
+              </div>
+              {errors[field.key] && (
+                <div className="flex items-center gap-2 mt-2 text-sm text-red-500">
+                  <FiAlertCircle className="w-4 h-4" />
+                  {errors[field.key]}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <div className="pt-6">
+          <Button
+            type="button"
+            size="lg"
+            onClick={handleGeneratePrompt}
+            className="w-full bg-sidebar-accent hover:bg-sidebar-accent/90 text-sidebar-accent-foreground px-6 py-4 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <span>Generar Prompt</span>
+            <FiArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
