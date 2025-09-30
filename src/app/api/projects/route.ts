@@ -19,7 +19,11 @@ export async function GET() {
       where: { id: session.user.id }
     });
 
-    let whereClause: any = {};
+    interface ProjectWhereClause {
+      isPublic?: boolean;
+      userId?: string;
+    }
+    let whereClause: ProjectWhereClause = {};
 
     if (user?.role === 'VIEWER') {
       // VIEWER users can only see public projects

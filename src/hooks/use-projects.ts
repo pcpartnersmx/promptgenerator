@@ -26,6 +26,7 @@ export function useProjects() {
       const projectsData = await ProjectsAPI.getProjects();
       
       // Convert string dates to Date objects
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const projectsWithDates = projectsData.map((project: any) => ({
         ...project,
         createdAt: new Date(project.createdAt),

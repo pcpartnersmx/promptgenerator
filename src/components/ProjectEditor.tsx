@@ -67,7 +67,8 @@ Tono: {tono}
 Restricciones: {restricciones}
 
 Por favor, proporciona una estrategia detallada y creativa.`,
-        generatedPrompt: project?.generatedPrompt || ''
+        generatedPrompt: project?.generatedPrompt || '',
+        isPublic: project?.isPublic || false
       };
       
       onSave(projectData);

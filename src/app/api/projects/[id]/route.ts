@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -85,7 +85,7 @@ export async function PUT(
       }
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.ProjectUpdateInput = {};
     
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;

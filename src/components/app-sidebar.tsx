@@ -143,7 +143,7 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   onEditProject?: (project: PromptProject) => void
   onDeleteProject?: (projectId: string) => void
   onTogglePublic?: (projectId: string, isPublic: boolean) => void
-  user?: any
+  user?: { email?: string; avatar_url?: string; role?: string }
   onCreateProject?: () => void
   onOpenCommandPalette?: () => void
 }

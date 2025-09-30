@@ -72,7 +72,7 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
                   Genera tu prompt
                 </h3>
                 <p className="text-muted-foreground mb-8">
-                  Haz clic en "Generar Prompt" para crear tu prompt personalizado usando las variables configuradas
+                  Haz clic en &quot;Generar Prompt&quot; para crear tu prompt personalizado usando las variables configuradas
                 </p>
               </div>
               <Button
