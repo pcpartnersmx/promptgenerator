@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Eye, EyeOff, UserPlus, ArrowLeft, CheckCircle, XCircle } from 'lucide-react'
+import { Eye, EyeOff, UserPlus, ArrowLeft, CheckCircle, XCircle, User, Mail, Lock, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserRole } from '@prisma/client'
@@ -173,243 +172,300 @@ export default function CreateUserPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-            {/* Header */}
-            <div className="bg-white border-b border-slate-200">
-                <div className="max-w-4xl mx-auto px-4 py-4">
-                    <div className="flex items-center gap-4">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => router.back()}
-                            className="flex items-center gap-2"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            Volver
-                        </Button>
+        <div className="px-4 lg:px-6 h-full flex flex-col">
+            {/* Modern Header */}
+            <motion.div 
+                className="mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+            >
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-sidebar-accent rounded-lg">
+                            <UserPlus className="w-5 h-5 text-sidebar-accent-foreground" />
+                        </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-slate-900">Crear Usuario</h1>
-                            <p className="text-slate-600">Agregar un nuevo usuario al sistema</p>
+                            <h1 className="text-2xl font-bold text-sidebar-foreground">Crear Usuario</h1>
+                            <p className="text-sm text-muted-foreground">Agregar un nuevo usuario al sistema</p>
                         </div>
                     </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.back()}
+                        className="text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Volver
+                    </Button>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Main Content */}
-            <div className="max-w-2xl mx-auto px-4 py-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <UserPlus className="w-5 h-5" />
-                            Información del Usuario
-                        </CardTitle>
-                        <CardDescription>
-                            Completa los datos para crear un nuevo usuario en el sistema.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Name Field */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="name" className="text-sm font-medium text-slate-700">
-                                        Nombre completo *
-                                    </Label>
-                                    <Input
-                                        id="name"
-                                        name="name"
-                                        type="text"
-                                        required
-                                        onChange={handleInputChange}
-                                        className={`h-12 rounded-lg border-2 transition-all duration-200 ${errors.name && touched.name
-                                                ? 'border-red-500 focus-visible:ring-red-500/50 focus-visible:border-red-500'
-                                                : 'border-slate-200 focus-visible:border-blue-500 focus-visible:ring-blue-500/50'
-                                            }`}
-                                        placeholder="Juan Pérez"
-                                        aria-invalid={!!(errors.name && touched.name)}
-                                    />
-                                    <AnimatePresence>
-                                        {errors.name && touched.name && (
-                                            <motion.p
-                                                className="text-sm text-red-600 flex items-center"
-                                                initial={{ opacity: 0, y: -5 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -5 }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <XCircle className="w-4 h-4 mr-1" />
-                                                {errors.name}
-                                            </motion.p>
-                                        )}
-                                    </AnimatePresence>
+            <div className="flex-1 min-h-0">
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.2 }}
+                    className="h-full bg-background border border-sidebar-border rounded-lg shadow-sm"
+                >
+                    <div className="p-6 h-full">
+                        <div className="space-y-6">
+                            {/* Header Section */}
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-blue-100 rounded-lg border border-blue-200">
+                                    <CheckCircle className="w-5 h-5 text-blue-600" />
                                 </div>
-
-                                {/* Email Field */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="email" className="text-sm font-medium text-slate-700">
-                                        Correo electrónico *
-                                    </Label>
-                                    <Input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        required
-                                        onChange={handleInputChange}
-                                        className={`h-12 rounded-lg border-2 transition-all duration-200 ${errors.email && touched.email
-                                                ? 'border-red-500 focus-visible:ring-red-500/50 focus-visible:border-red-500'
-                                                : 'border-slate-200 focus-visible:border-blue-500 focus-visible:ring-blue-500/50'
-                                            }`}
-                                        placeholder="usuario@ejemplo.com"
-                                        aria-invalid={!!(errors.email && touched.email)}
-                                    />
-                                    <AnimatePresence>
-                                        {errors.email && touched.email && (
-                                            <motion.p
-                                                className="text-sm text-red-600 flex items-center"
-                                                initial={{ opacity: 0, y: -5 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -5 }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <XCircle className="w-4 h-4 mr-1" />
-                                                {errors.email}
-                                            </motion.p>
-                                        )}
-                                    </AnimatePresence>
+                                <div>
+                                    <h2 className="text-2xl font-semibold text-black">Información del Usuario</h2>
+                                    <p className="text-gray-600 text-sm">Completa los datos para crear un nuevo usuario</p>
                                 </div>
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Password Field */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="password" className="text-sm font-medium text-slate-700">
-                                        Contraseña *
-                                    </Label>
-                                    <div className="relative">
-                                        <Input
-                                            id="password"
-                                            name="password"
-                                            type={showPassword ? 'text' : 'password'}
-                                            required
-                                            onChange={handleInputChange}
-                                            className={`h-12 rounded-lg border-2 transition-all duration-200 pr-10 ${errors.password && touched.password
-                                                    ? 'border-red-500 focus-visible:ring-red-500/50 focus-visible:border-red-500'
-                                                    : 'border-slate-200 focus-visible:border-blue-500 focus-visible:ring-blue-500/50'
+                            
+                            <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Name Field */}
+                                    <div className="group">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                            <User className="w-4 h-4 text-blue-500" />
+                                            Nombre completo
+                                            <span className="text-red-500 text-xs">(requerido)</span>
+                                        </label>
+                                        <div className="relative">
+                                            <Input
+                                                id="name"
+                                                name="name"
+                                                type="text"
+                                                required
+                                                onChange={handleInputChange}
+                                                className={`w-full px-4 py-3 bg-white border rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                                                    errors.name && touched.name
+                                                        ? 'border-red-500 bg-red-50' 
+                                                        : 'border-gray-300 hover:border-gray-400 group-focus-within:border-blue-500'
                                                 }`}
-                                            placeholder="••••••••"
-                                            aria-invalid={!!(errors.password && touched.password)}
-                                        />
-                                        <motion.button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
-                                        >
-                                            <AnimatePresence mode="wait">
+                                                placeholder="Juan Pérez"
+                                                aria-invalid={!!(errors.name && touched.name)}
+                                            />
+                                            {!errors.name && touched.name && (
+                                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <AnimatePresence>
+                                            {errors.name && touched.name && (
                                                 <motion.div
-                                                    key={showPassword ? 'hide' : 'show'}
-                                                    initial={{ rotate: -90, opacity: 0 }}
-                                                    animate={{ rotate: 0, opacity: 1 }}
-                                                    exit={{ rotate: 90, opacity: 0 }}
+                                                    className="flex items-center gap-2 mt-2 text-sm text-red-500"
+                                                    initial={{ opacity: 0, y: -5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -5 }}
                                                     transition={{ duration: 0.2 }}
                                                 >
-                                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                                    <XCircle className="w-4 h-4" />
+                                                    {errors.name}
                                                 </motion.div>
-                                            </AnimatePresence>
-                                        </motion.button>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
-                                    <AnimatePresence>
-                                        {errors.password && touched.password && (
-                                            <motion.p
-                                                className="text-sm text-red-600 flex items-center"
-                                                initial={{ opacity: 0, y: -5 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -5 }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <XCircle className="w-4 h-4 mr-1" />
-                                                {errors.password}
-                                            </motion.p>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
 
-                                {/* Role Field */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="role" className="text-sm font-medium text-slate-700">
-                                        Rol *
-                                    </Label>
-                                    <Select name="role" onValueChange={handleSelectChange}>
-                                        <SelectTrigger className={`h-12 rounded-lg border-2 transition-all duration-200 ${errors.role && touched.role
-                                                ? 'border-red-500 focus-visible:ring-red-500/50 focus-visible:border-red-500'
-                                                : 'border-slate-200 focus-visible:border-blue-500 focus-visible:ring-blue-500/50'
-                                            }`}>
-                                            <SelectValue placeholder="Seleccionar rol" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="VIEWER">Viewer - Solo lectura</SelectItem>
-                                            <SelectItem value="EDITOR">Editor - Crear y editar</SelectItem>
-                                            <SelectItem value="ADMIN">Admin - Acceso completo</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <AnimatePresence>
-                                        {errors.role && touched.role && (
-                                            <motion.p
-                                                className="text-sm text-red-600 flex items-center"
-                                                initial={{ opacity: 0, y: -5 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -5 }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <XCircle className="w-4 h-4 mr-1" />
-                                                {errors.role}
-                                            </motion.p>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                            </div>
-
-                            {/* Submit Button */}
-                            <div className="flex justify-end gap-4 pt-4">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => router.back()}
-                                    disabled={isLoading}
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    {isLoading ? (
-                                        <motion.div
-                                            className="flex items-center"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ duration: 0.2 }}
-                                        >
-                                            <motion.div
-                                                className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
-                                                animate={{ rotate: 360 }}
-                                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    {/* Email Field */}
+                                    <div className="group">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                            <Mail className="w-4 h-4 text-blue-500" />
+                                            Correo electrónico
+                                            <span className="text-red-500 text-xs">(requerido)</span>
+                                        </label>
+                                        <div className="relative">
+                                            <Input
+                                                id="email"
+                                                name="email"
+                                                type="email"
+                                                required
+                                                onChange={handleInputChange}
+                                                className={`w-full px-4 py-3 bg-white border rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                                                    errors.email && touched.email
+                                                        ? 'border-red-500 bg-red-50' 
+                                                        : 'border-gray-300 hover:border-gray-400 group-focus-within:border-blue-500'
+                                                }`}
+                                                placeholder="usuario@ejemplo.com"
+                                                aria-invalid={!!(errors.email && touched.email)}
                                             />
-                                            Creando usuario...
-                                        </motion.div>
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <UserPlus className="w-4 h-4" />
-                                            Crear Usuario
+                                            {!errors.email && touched.email && (
+                                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                                        <AnimatePresence>
+                                            {errors.email && touched.email && (
+                                                <motion.div
+                                                    className="flex items-center gap-2 mt-2 text-sm text-red-500"
+                                                    initial={{ opacity: 0, y: -5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -5 }}
+                                                    transition={{ duration: 0.2 }}
+                                                >
+                                                    <XCircle className="w-4 h-4" />
+                                                    {errors.email}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Password Field */}
+                                    <div className="group">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                            <Lock className="w-4 h-4 text-blue-500" />
+                                            Contraseña
+                                            <span className="text-red-500 text-xs">(requerido)</span>
+                                        </label>
+                                        <div className="relative">
+                                            <Input
+                                                id="password"
+                                                name="password"
+                                                type={showPassword ? 'text' : 'password'}
+                                                required
+                                                onChange={handleInputChange}
+                                                className={`w-full px-4 py-3 bg-white border rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 pr-10 ${
+                                                    errors.password && touched.password
+                                                        ? 'border-red-500 bg-red-50' 
+                                                        : 'border-gray-300 hover:border-gray-400 group-focus-within:border-blue-500'
+                                                }`}
+                                                placeholder="••••••••"
+                                                aria-invalid={!!(errors.password && touched.password)}
+                                            />
+                                            <motion.button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
+                                            >
+                                                <AnimatePresence mode="wait">
+                                                    <motion.div
+                                                        key={showPassword ? 'hide' : 'show'}
+                                                        initial={{ rotate: -90, opacity: 0 }}
+                                                        animate={{ rotate: 0, opacity: 1 }}
+                                                        exit={{ rotate: 90, opacity: 0 }}
+                                                        transition={{ duration: 0.2 }}
+                                                    >
+                                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                                    </motion.div>
+                                                </AnimatePresence>
+                                            </motion.button>
+                                            {!errors.password && touched.password && (
+                                                <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <AnimatePresence>
+                                            {errors.password && touched.password && (
+                                                <motion.div
+                                                    className="flex items-center gap-2 mt-2 text-sm text-red-500"
+                                                    initial={{ opacity: 0, y: -5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -5 }}
+                                                    transition={{ duration: 0.2 }}
+                                                >
+                                                    <XCircle className="w-4 h-4" />
+                                                    {errors.password}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+
+                                    {/* Role Field */}
+                                    <div className="group">
+                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                            <Shield className="w-4 h-4 text-blue-500" />
+                                            Rol
+                                            <span className="text-red-500 text-xs">(requerido)</span>
+                                        </label>
+                                        <div className="relative">
+                                            <Select name="role" onValueChange={handleSelectChange}>
+                                                <SelectTrigger className={`w-full px-4 py-3 bg-white border rounded-xl text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                                                    errors.role && touched.role
+                                                        ? 'border-red-500 bg-red-50' 
+                                                        : 'border-gray-300 hover:border-gray-400'
+                                                }`}>
+                                                    <SelectValue placeholder="Seleccionar rol" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="VIEWER">Viewer - Solo lectura</SelectItem>
+                                                    <SelectItem value="ADMIN">Admin - Acceso completo</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            {!errors.role && touched.role && (
+                                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <AnimatePresence>
+                                            {errors.role && touched.role && (
+                                                <motion.div
+                                                    className="flex items-center gap-2 mt-2 text-sm text-red-500"
+                                                    initial={{ opacity: 0, y: -5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -5 }}
+                                                    transition={{ duration: 0.2 }}
+                                                >
+                                                    <XCircle className="w-4 h-4" />
+                                                    {errors.role}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+
+                                {/* Submit Buttons */}
+                                <div className="pt-6">
+                                    <div className="flex justify-end gap-4">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => router.back()}
+                                            disabled={isLoading}
+                                            className="px-6 py-3 rounded-xl font-medium transition-all duration-200 border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={isLoading}
+                                            className="bg-sidebar-accent hover:bg-sidebar-accent/90 text-sidebar-accent-foreground px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isLoading ? (
+                                                <motion.div
+                                                    className="flex items-center"
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    transition={{ duration: 0.2 }}
+                                                >
+                                                    <motion.div
+                                                        className="w-4 h-4 border-2 border-sidebar-accent-foreground/30 border-t-sidebar-accent-foreground rounded-full mr-2"
+                                                        animate={{ rotate: 360 }}
+                                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                                    />
+                                                    Creando usuario...
+                                                </motion.div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <UserPlus className="w-4 h-4" />
+                                                    Crear Usuario
+                                                </div>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </motion.div>
             </div>
         </div>
     )

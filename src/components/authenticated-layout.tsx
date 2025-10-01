@@ -134,7 +134,7 @@ function AuthenticatedLayoutContent({ children }: AuthenticatedLayoutProps) {
           <div className="flex flex-1 flex-col items-center justify-center">
             <div className="text-center">
               <div className="w-8 h-8 border-4 border-sidebar-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Cargando proyectos...</p>
+              <p className="text-muted-foreground">Cargando...</p>
             </div>
           </div>
         </SidebarInset>
