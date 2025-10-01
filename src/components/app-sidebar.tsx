@@ -171,12 +171,10 @@ export function AppSidebar({ projects = [], onOpenProject, onEditProject, onDele
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="h-12"
             >
               <a href="#" className='flex'>
-                <img src={'/logo.webp'} className='w-24'/>
-                {/* <IconInnerShadowTop className="!size-5" /> */}
-                {/* <span className="text-base font-semibold">PcParrners</span> */}
+                <img src={'/logo.webp'} className='w-32 mx-auto'/>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
