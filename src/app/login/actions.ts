@@ -33,5 +33,5 @@ export async function signup(formData: FormData) {
     })
 
     revalidatePath('/', 'layout')
-    redirect('/login?success=account-created')
+    redirect('/login?success=account-created&auto-login=true')
 }

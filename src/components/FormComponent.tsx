@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FiArrowRight, FiCheck, FiAlertCircle, FiPlus } from 'react-icons/fi';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type FormData = {
   [key: string]: string;
@@ -11,10 +12,12 @@ type FormData = {
 type FormComponentProps = {
   availableVariables: string[];
   formData: FormData;
+  template?: string;
+  userRole?: string;
   onGeneratePrompt: (formData: FormData) => void;
 };
 
-export default function FormComponent({ availableVariables, formData: propFormData, onGeneratePrompt }: FormComponentProps) {
+export default function FormComponent({ availableVariables, formData: propFormData, template, userRole, onGeneratePrompt }: FormComponentProps) {
   const [formData, setFormData] = useState<FormData>(propFormData);
   const [errors, setErrors] = useState<Partial<FormData>>({});
 
@@ -54,10 +57,14 @@ export default function FormComponent({ availableVariables, formData: propFormDa
     console.log('FormComponent - formData actual:', formData);
     console.log('FormComponent - validateForm result:', validateForm());
     
-    if (validateForm()) {
+    if (validateForm() && hasValidTemplate()) {
       console.log('FormComponent - llamando onGeneratePrompt con:', formData);
       onGeneratePrompt(formData);
     }
+  };
+
+  const hasValidTemplate = (): boolean => {
+    return !!(template && template.trim().length > 0);
   };
 
   const getFieldConfig = (variable: string) => {
@@ -136,15 +143,32 @@ export default function FormComponent({ availableVariables, formData: propFormDa
         })}
 
         <div className="pt-6">
-          <Button
-            type="button"
-            size="lg"
-            onClick={handleGeneratePrompt}
-            className="w-full bg-sidebar-accent hover:bg-sidebar-accent/90 text-sidebar-accent-foreground px-6 py-4 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <span>Generar Prompt</span>
-            <FiArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="w-full">
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={handleGeneratePrompt}
+                  disabled={!hasValidTemplate()}
+                  className="w-full bg-sidebar-accent hover:bg-sidebar-accent/90 text-sidebar-accent-foreground px-6 py-4 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sidebar-accent disabled:hover:shadow-lg"
+                >
+                  <span>Generar Prompt</span>
+                  <FiArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+                </Button>
+              </div>
+            </TooltipTrigger>
+            {!hasValidTemplate() && (
+              <TooltipContent>
+                <p>
+                  {userRole === 'ADMIN' 
+                    ? 'No hay un template configurado para este proyecto. Ve a la pestaña "Editor" para crear uno.'
+                    : 'Este proyecto no tiene un template configurado. Contacta al administrador para configurarlo.'
+                  }
+                </p>
+              </TooltipContent>
+            )}
+          </Tooltip>
         </div>
       </div>
     </div>

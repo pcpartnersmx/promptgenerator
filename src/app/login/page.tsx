@@ -8,17 +8,19 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { useState, useEffect, use } from 'react'
-import { Eye, EyeOff, Mail, Lock, UserPlus, LogIn, CheckCircle, XCircle } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, UserPlus, LogIn, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 
 export default function LoginPage({
     searchParams,
 }: {
-    searchParams: Promise<{ error?: string; success?: string }>
+    searchParams: Promise<{ error?: string; success?: string; 'auto-login'?: string }>
 }) {
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [isCreatingAccount, setIsCreatingAccount] = useState(false)
     const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login')
     const [errors, setErrors] = useState<{email?: string, password?: string}>({})
     const [touched, setTouched] = useState<{email?: boolean, password?: boolean}>({})
@@ -31,9 +33,38 @@ export default function LoginPage({
     useEffect(() => {
         if (params.success === 'account-created') {
             toast.success('¡Cuenta creada exitosamente!', {
-                description: 'Por favor revisa tu email para confirmar tu cuenta.',
+                // description: 'Por favor revisa tu email para confirmar tu cuenta.',
                 duration: 5000,
             })
+            
+            // Auto-login si el parámetro está presente
+            if (params['auto-login'] === 'true') {
+                // Obtener email y password del localStorage o sessionStorage
+                const savedEmail = localStorage.getItem('signup-email')
+                const savedPassword = localStorage.getItem('signup-password')
+                
+                if (savedEmail && savedPassword) {
+                    // Limpiar datos temporales
+                    localStorage.removeItem('signup-email')
+                    localStorage.removeItem('signup-password')
+                    
+                    // Auto-login
+                    signIn('credentials', {
+                        email: savedEmail,
+                        password: savedPassword,
+                        redirect: false,
+                    }).then((result) => {
+                        if (result?.error) {
+                            toast.error('Error al iniciar sesión automáticamente', {
+                                description: 'Por favor inicia sesión manualmente.',
+                                duration: 4000,
+                            })
+                        } else {
+                            window.location.href = '/'
+                        }
+                    })
+                }
+            }
         }
         if (params.error === 'login-failed') {
             toast.error('Error al iniciar sesión', {
@@ -105,7 +136,11 @@ export default function LoginPage({
             return
         }
         
-        setIsLoading(true)
+        if (action === 'login') {
+            setIsLoading(true)
+        } else {
+            setIsCreatingAccount(true)
+        }
         setErrors({})
         
         try {
@@ -122,6 +157,10 @@ export default function LoginPage({
                     window.location.href = '/'
                 }
             } else {
+                // Guardar credenciales temporalmente para auto-login
+                localStorage.setItem('signup-email', email)
+                localStorage.setItem('signup-password', password)
+                
                 await signup(formData)
             }
         } catch (error) {
@@ -129,251 +168,291 @@ export default function LoginPage({
             setErrors({ email: 'Error de autenticación. Inténtalo de nuevo.' })
         } finally {
             setIsLoading(false)
+            setIsCreatingAccount(false)
         }
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-40">
-                <div className="w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5QzkyQUMiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')]" />
+        <div className="min-h-screen flex relative">
+            {/* Loading Overlay for Account Creation */}
+            <AnimatePresence>
+                {isCreatingAccount && (
+                    <motion.div 
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div 
+                            className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-2xl"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                        >
+                            <motion.div 
+                                className="w-16 h-16 mx-auto mb-6 relative"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            >
+                                <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full"></div>
+                            </motion.div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-2">Creando tu cuenta</h3>
+                            <p className="text-slate-600 mb-4">Estamos configurando todo para ti...</p>
+                            <div className="flex justify-center space-x-1">
+                                <motion.div 
+                                    className="w-2 h-2 bg-blue-600 rounded-full"
+                                    animate={{ scale: [1, 1.2, 1] }}
+                                    transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                                />
+                                <motion.div 
+                                    className="w-2 h-2 bg-blue-600 rounded-full"
+                                    animate={{ scale: [1, 1.2, 1] }}
+                                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                                />
+                                <motion.div 
+                                    className="w-2 h-2 bg-blue-600 rounded-full"
+                                    animate={{ scale: [1, 1.2, 1] }}
+                                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                                />
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Mobile Back Button */}
+            <div className="lg:hidden absolute top-4 left-4 z-20">
+                <motion.button
+                    onClick={() => window.history.back()}
+                    className="p-2 rounded-lg bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </motion.button>
+            </div>
+
+            {/* Left Section - Image and Testimonial */}
+            <div className="hidden lg:flex lg:w-3/5 relative overflow-hidden">
+                {/* Background Image */}
+                <div className="absolute inset-0">
+                    <Image
+                        src="/bg.png"
+                        alt="Background"
+                        fill
+                        className="object-cover"
+                        priority
+                    />
+                    {/* Overlay for better text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/10 to-transparent" />
+                </div>
+                
+                {/* Decorative Elements */}
+                <div className="absolute top-20 right-20 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
+                <div className="absolute bottom-32 left-16 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl" />
+                
+                {/* Content */}
+                <div className="relative z-10 flex flex-col justify-between h-full p-12 text-white">
+                    {/* Logo */}
+                    <motion.div 
+                        className="flex items-center space-x-3"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.6 }}
+                    >
+                        <Image
+                            src="/logo.webp"
+                            alt="Prompt Generator Logo"
+                            width={150}
+                            height={100}
+                            className="object-contain"
+                            priority
+                        />
+                        {/* <span className="text-2xl font-bold text-white">Prompt Generator</span> */}
+                    </motion.div>
+                    
+                    {/* Testimonial */}
+                    <motion.div 
+                        className="max-w-sm"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                    >
+                        
+                        <blockquote className="text-2xl font-bold leading-tight mb-6 text-slate-900">
+                            "Genera prompts de IA profesionales y efectivos para cualquier tarea o proyecto."
+                        </blockquote>
+                        <div className="space-y-1">
+                            <p className="text-lg font-medium text-slate-900">Prompt Generator</p>
+                            <p className="text-sm text-slate-700">Herramienta de generación de prompts inteligentes</p>
+                        </div>
+                    </motion.div>
+                </div>
             </div>
             
-            <motion.div 
-                className="w-full max-w-md relative z-10"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-            >
-                <Card className="shadow-2xl border-0 bg-white dark:bg-slate-800 backdrop-blur-sm overflow-hidden">
-                    {/* Decorative Header */}
-                    <div className="h-2 bg-slate-200 dark:bg-slate-700" />
-                    
-                    <CardHeader className="space-y-4 text-center pt-8">
-                        <motion.div 
-                            className="mx-auto w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mb-2"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            {/* Right Section - Login Form */}
+            <div className="flex-1 lg:w-2/5 flex items-center justify-center p-8 bg-white relative">
+                {/* Mobile Background */}
+                <div className="lg:hidden absolute inset-0 bg-gradient-to-br from-purple-50 via-white to-blue-50" />
+                <div className="lg:hidden absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM5QzkyQUMiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-20" />
+                <motion.div 
+                    className="w-full max-w-md relative z-10"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                >
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <motion.h1 
+                            className="text-3xl font-bold text-slate-900 mb-2"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.3 }}
                         >
-                            <motion.div
-                                initial={{ rotate: 0 }}
-                                animate={{ rotate: 360 }}
-                                transition={{ delay: 0.5, duration: 0.8, ease: "easeInOut" }}
+                            Bienvenido de vuelta
+                        </motion.h1>
+                    </div>
+                    
+                    {/* Success/Error Messages */}
+                    <AnimatePresence>
+                        {params.success === 'account-created' && (
+                            <motion.div 
+                                className="p-4 bg-green-50 border border-green-200 rounded-xl mb-6"
+                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
                             >
-                                <UserPlus className="w-8 h-8 text-slate-700 dark:text-slate-300" />
+                                <div className="flex items-start">
+                                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 mr-3 flex-shrink-0" />
+                                    <div className="text-sm text-green-800">
+                                        <p className="font-medium">¡Cuenta creada exitosamente!</p>
+                                        {/* <p className="mt-1">Por favor revisa tu email para confirmar tu cuenta.</p> */}
+                                    </div>
+                                </div>
                             </motion.div>
-                        </motion.div>
-                        
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3, duration: 0.5 }}
-                        >
-                            <CardTitle className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                                Bienvenido
-                            </CardTitle>
-                        </motion.div>
-                        
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.4, duration: 0.5 }}
-                        >
-                            <CardDescription className="text-slate-600 dark:text-slate-400 text-base">
-                                <AnimatePresence mode="wait">
-                                    <motion.span
-                                        key={activeTab}
-                                        initial={{ opacity: 0, y: 5 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -5 }}
-                                        transition={{ duration: 0.3 }}
-                                    >
-                                        {activeTab === 'login' 
-                                            ? 'Inicia sesión en tu cuenta' 
-                                            : 'Crea una nueva cuenta'
-                                        }
-                                    </motion.span>
-                                </AnimatePresence>
-                            </CardDescription>
-                        </motion.div>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-6">
-                        {/* Tab Navigation */}
-                        <motion.div 
-                            className="relative flex space-x-1 p-1 bg-slate-100 dark:bg-slate-700 rounded-xl"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5, duration: 0.5 }}
-                        >
-                            {/* Active Tab Background */}
-                            <motion.div
-                                className="absolute top-1 bottom-1 bg-white dark:bg-slate-600 rounded-lg shadow-sm"
-                                layoutId="activeTab"
-                                initial={false}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            />
-                            
-                            <motion.button
-                                type="button"
-                                onClick={() => setActiveTab('login')}
-                                className="relative flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors z-10"
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
+                        )}
+
+                        {params.error === 'email-not-confirmed' && (
+                            <motion.div 
+                                className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-6"
+                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
                             >
-                                <div className="flex items-center justify-center gap-2">
-                                    <LogIn className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Iniciar Sesión</span>
-                                    <span className="sm:hidden">Login</span>
+                                <div className="flex items-start">
+                                    <Mail className="w-5 h-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
+                                    <div className="text-sm text-amber-800">
+                                        <p className="font-medium">Email no confirmado</p>
+                                        <p className="mt-1">Por favor revisa tu bandeja de entrada o contacta al administrador.</p>
+                                    </div>
                                 </div>
-                            </motion.button>
-                            
-                            <motion.button
-                                type="button"
-                                onClick={() => setActiveTab('signup')}
-                                className="relative flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors z-10"
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
+                            </motion.div>
+                        )}
+
+                        {(params.error === 'login-failed' || params.error === 'signup-failed') && (
+                            <motion.div 
+                                className="p-4 bg-red-50 border border-red-200 rounded-xl mb-6"
+                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
                             >
-                                <div className="flex items-center justify-center gap-2">
-                                    <UserPlus className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Registrarse</span>
-                                    <span className="sm:hidden">Signup</span>
+                                <div className="flex items-start">
+                                    <XCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+                                    <div className="text-sm text-red-800">
+                                        <p className="font-medium">
+                                            {params.error === 'login-failed' ? 'Error al iniciar sesión' : 'Error al crear la cuenta'}
+                                        </p>
+                                        <p className="mt-1">
+                                            {params.error === 'login-failed' 
+                                                ? 'Verifica tus credenciales e inténtalo de nuevo.'
+                                                : 'El email podría ya estar registrado. Intenta iniciar sesión.'
+                                            }
+                                        </p>
+                                    </div>
                                 </div>
-                            </motion.button>
-                        </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                        {/* Success/Error Messages */}
-                        <AnimatePresence>
-                            {params.success === 'account-created' && (
-                                <motion.div 
-                                    className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl"
-                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                    transition={{ duration: 0.3, ease: "easeOut" }}
-                                >
-                                    <div className="flex items-start">
-                                        <motion.div
-                                            initial={{ scale: 0 }}
-                                            animate={{ scale: 1 }}
-                                            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                                        >
-                                            <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 mr-3 flex-shrink-0" />
-                                        </motion.div>
-                                        <div className="text-sm text-green-800 dark:text-green-200">
-                                            <p className="font-medium">¡Cuenta creada exitosamente!</p>
-                                            <p className="mt-1">Por favor revisa tu email para confirmar tu cuenta.</p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
+                    {/* Tab Navigation */}
+                    <motion.div 
+                        className="relative flex space-x-1 p-1 bg-slate-100 rounded-xl mb-6"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5, duration: 0.5 }}
+                    >
+                        {/* Active Tab Background */}
+                        <motion.div
+                            className="absolute top-1 bottom-1 bg-white rounded-lg shadow-sm"
+                            layoutId="activeTab"
+                            initial={false}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        />
+                        
+                        <motion.button
+                            type="button"
+                            onClick={() => setActiveTab('login')}
+                            className="relative flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors z-10"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <div className="flex items-center justify-center gap-2">
+                                <LogIn className="w-4 h-4" />
+                                <span>Iniciar Sesión</span>
+                            </div>
+                        </motion.button>
+                        
+                        <motion.button
+                            type="button"
+                            onClick={() => setActiveTab('signup')}
+                            className="relative flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors z-10"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <div className="flex items-center justify-center gap-2">
+                                <UserPlus className="w-4 h-4" />
+                                <span>Registrarse</span>
+                            </div>
+                        </motion.button>
+                    </motion.div>
 
-                            {params.error === 'email-not-confirmed' && (
-                                <motion.div 
-                                    className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl"
-                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                    transition={{ duration: 0.3, ease: "easeOut" }}
-                                >
-                                    <div className="flex items-start">
-                                        <motion.div
-                                            initial={{ scale: 0 }}
-                                            animate={{ scale: 1 }}
-                                            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                                        >
-                                            <Mail className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 mr-3 flex-shrink-0" />
-                                        </motion.div>
-                                        <div className="text-sm text-amber-800 dark:text-amber-200">
-                                            <p className="font-medium">Email no confirmado</p>
-                                            <p className="mt-1">Por favor revisa tu bandeja de entrada o contacta al administrador.</p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-
-                            {(params.error === 'login-failed' || params.error === 'signup-failed') && (
-                                <motion.div 
-                                    className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl"
-                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                    transition={{ duration: 0.3, ease: "easeOut" }}
-                                >
-                                    <div className="flex items-start">
-                                        <motion.div
-                                            initial={{ scale: 0 }}
-                                            animate={{ scale: 1 }}
-                                            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                                        >
-                                            <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" />
-                                        </motion.div>
-                                        <div className="text-sm text-red-800 dark:text-red-200">
-                                            <p className="font-medium">
-                                                {params.error === 'login-failed' ? 'Error al iniciar sesión' : 'Error al crear la cuenta'}
-                                            </p>
-                                            <p className="mt-1">
-                                                {params.error === 'login-failed' 
-                                                    ? 'Verifica tus credenciales e inténtalo de nuevo.'
-                                                    : 'El email podría ya estar registrado. Intenta iniciar sesión.'
-                                                }
-                                            </p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        {/* Forms */}
-                        <AnimatePresence mode="wait">
-                            {activeTab === 'login' ? (
-                                <motion.form 
-                                    key="login"
-                                    className="space-y-5"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                                >
-                                    <motion.div 
-                                        className="space-y-2"
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.1, duration: 0.3 }}
-                                    >
-                                        <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-medium">
-                                            Email
+                    {/* Forms */}
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'login' ? (
+                            <motion.form 
+                                key="login"
+                                className="space-y-6"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                            >
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+                                            Correo electrónico
                                         </Label>
-                                        <div className="relative">
-                                            <motion.div
-                                                animate={{ 
-                                                    color: errors.email && touched.email ? '#ef4444' : '#94a3b8'
-                                                }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" />
-                                            </motion.div>
-                                            <Input
-                                                id="email"
-                                                name="email"
-                                                type="email"
-                                                required
-                                                onChange={handleInputChange}
-                                                className={`pl-12 h-12 rounded-xl border-2 transition-all duration-200 ${
-                                                    errors.email && touched.email 
-                                                        ? 'border-red-500 focus-visible:ring-red-500/50 focus-visible:border-red-500' 
-                                                        : 'border-slate-200 dark:border-slate-600 focus-visible:border-blue-500 focus-visible:ring-blue-500/50'
-                                                }`}
-                                                placeholder="tu@email.com"
-                                                aria-invalid={!!(errors.email && touched.email)}
-                                            />
-                                        </div>
+                                        <Input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            required
+                                            onChange={handleInputChange}
+                                            className={`h-12 rounded-lg border-2 transition-all duration-200 ${
+                                                errors.email && touched.email 
+                                                    ? 'border-red-500 focus-visible:ring-red-500/50 focus-visible:border-red-500' 
+                                                    : 'border-slate-200 focus-visible:border-blue-500 focus-visible:ring-blue-500/50'
+                                            }`}
+                                            placeholder="tu@email.com"
+                                            aria-invalid={!!(errors.email && touched.email)}
+                                        />
                                         <AnimatePresence>
                                             {errors.email && touched.email && (
                                                 <motion.p 
-                                                    className="text-sm text-red-600 dark:text-red-400 flex items-center"
+                                                    className="text-sm text-red-600 flex items-center"
                                                     initial={{ opacity: 0, y: -5 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     exit={{ opacity: 0, y: -5 }}
@@ -384,36 +463,23 @@ export default function LoginPage({
                                                 </motion.p>
                                             )}
                                         </AnimatePresence>
-                                    </motion.div>
+                                    </div>
 
-                                    <motion.div 
-                                        className="space-y-2"
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.2, duration: 0.3 }}
-                                    >
-                                        <Label htmlFor="password" className="text-slate-700 dark:text-slate-300 font-medium">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="password" className="text-sm font-medium text-slate-700">
                                             Contraseña
                                         </Label>
                                         <div className="relative">
-                                            <motion.div
-                                                animate={{ 
-                                                    color: errors.password && touched.password ? '#ef4444' : '#94a3b8'
-                                                }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" />
-                                            </motion.div>
                                             <Input
                                                 id="password"
                                                 name="password"
                                                 type={showPassword ? 'text' : 'password'}
                                                 required
                                                 onChange={handleInputChange}
-                                                className={`pl-12 pr-12 h-12 rounded-xl border-2 transition-all duration-200 ${
+                                                className={`h-12 rounded-lg border-2 transition-all duration-200 ${
                                                     errors.password && touched.password 
                                                         ? 'border-red-500 focus-visible:ring-red-500/50 focus-visible:border-red-500' 
-                                                        : 'border-slate-200 dark:border-slate-600 focus-visible:border-blue-500 focus-visible:ring-blue-500/50'
+                                                        : 'border-slate-200 focus-visible:border-blue-500 focus-visible:ring-blue-500/50'
                                                 }`}
                                                 placeholder="••••••••"
                                                 aria-invalid={!!(errors.password && touched.password)}
@@ -421,7 +487,7 @@ export default function LoginPage({
                                             <motion.button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                                                 whileHover={{ scale: 1.1 }}
                                                 whileTap={{ scale: 0.9 }}
                                             >
@@ -441,7 +507,7 @@ export default function LoginPage({
                                         <AnimatePresence>
                                             {errors.password && touched.password && (
                                                 <motion.p 
-                                                    className="text-sm text-red-600 dark:text-red-400 flex items-center"
+                                                    className="text-sm text-red-600 flex items-center"
                                                     initial={{ opacity: 0, y: -5 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     exit={{ opacity: 0, y: -5 }}
@@ -452,327 +518,260 @@ export default function LoginPage({
                                                 </motion.p>
                                             )}
                                         </AnimatePresence>
-                                    </motion.div>
+                                    </div>
+                                </div>
 
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.3, duration: 0.3 }}
-                                    >
-                                        <motion.div
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id="remember"
+                                            className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                                        />
+                                        <label htmlFor="remember" className="text-sm text-slate-600">
+                                            Recordar datos de inicio de sesión
+                                        </label>
+                                    </div>
+                                    {/* <a href="#" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                                        ¿Olvidaste tu contraseña?
+                                    </a> */}
+                                </div>
+
+                                <Button
+                                    formAction={(formData) => handleSubmit(formData, 'login')}
+                                    disabled={isLoading}
+                                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+                                >
+                                    {isLoading ? (
+                                        <motion.div 
+                                            className="flex items-center"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ duration: 0.2 }}
                                         >
-                                            <Button
-                                                formAction={(formData) => handleSubmit(formData, 'login')}
-                                                disabled={isLoading}
-                                                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl border-0 shadow-lg hover:shadow-xl transition-all duration-200"
-                                            >
-                                                {isLoading ? (
-                                                    <motion.div 
-                                                        className="flex items-center"
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        transition={{ duration: 0.2 }}
-                                                    >
-                                                        <motion.div 
-                                                            className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full mr-3"
-                                                            animate={{ rotate: 360 }}
-                                                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                                        />
-                                                        Iniciando sesión...
-                                                    </motion.div>
-                                                ) : (
-                                                    <motion.div 
-                                                        className="flex items-center"
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        transition={{ duration: 0.2 }}
-                                                    >
-                                                        <LogIn className="w-5 h-5 mr-3" />
-                                                        Iniciar Sesión
-                                                    </motion.div>
-                                                )}
-                                            </Button>
+                                            <motion.div 
+                                                className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full mr-3"
+                                                animate={{ rotate: 360 }}
+                                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                            />
+                                            Iniciando sesión...
                                         </motion.div>
-                                    </motion.div>
-                                </motion.form>
+                                    ) : (
+                                        'Iniciar sesión'
+                                    )}
+                                </Button>
+                            </motion.form>
                         ) : (
                             <motion.form 
                                 key="signup"
-                                className="space-y-5"
+                                className="space-y-6"
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
                                 transition={{ duration: 0.3, ease: "easeInOut" }}
                             >
-                                <motion.div 
-                                    className="space-y-2"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.1, duration: 0.3 }}
-                                >
-                                    <Label htmlFor="signup-email" className="text-slate-700 dark:text-slate-300 font-medium">
-                                        Email
-                                    </Label>
-                                    <div className="relative">
-                                        <motion.div
-                                            animate={{ 
-                                                color: errors.email && touched.email ? '#ef4444' : '#94a3b8'
-                                            }}
-                                            transition={{ duration: 0.2 }}
-                                        >
-                                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" />
-                                        </motion.div>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="signup-email" className="text-sm font-medium text-slate-700">
+                                            Correo electrónico
+                                        </Label>
                                         <Input
                                             id="signup-email"
                                             name="email"
                                             type="email"
                                             required
                                             onChange={handleInputChange}
-                                            className={`pl-12 h-12 rounded-xl border-2 transition-all duration-200 ${
+                                            className={`h-12 rounded-lg border-2 transition-all duration-200 ${
                                                 errors.email && touched.email 
                                                     ? 'border-red-500 focus-visible:ring-red-500/50 focus-visible:border-red-500' 
-                                                    : 'border-slate-200 dark:border-slate-600 focus-visible:border-green-500 focus-visible:ring-green-500/50'
+                                                    : 'border-slate-200 focus-visible:border-blue-500 focus-visible:ring-blue-500/50'
                                             }`}
                                             placeholder="tu@email.com"
                                             aria-invalid={!!(errors.email && touched.email)}
                                         />
-                                    </div>
-                                    <AnimatePresence>
-                                        {errors.email && touched.email && (
-                                            <motion.p 
-                                                className="text-sm text-red-600 dark:text-red-400 flex items-center"
-                                                initial={{ opacity: 0, y: -5 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -5 }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
-                                                {errors.email}
-                                            </motion.p>
-                                        )}
-                                    </AnimatePresence>
-                                </motion.div>
-
-                                <motion.div 
-                                    className="space-y-2"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2, duration: 0.3 }}
-                                >
-                                    <Label htmlFor="signup-password" className="text-slate-700 dark:text-slate-300 font-medium">
-                                        Contraseña
-                                    </Label>
-                                    <div className="relative">
-                                        <motion.div
-                                            animate={{ 
-                                                color: errors.password && touched.password ? '#ef4444' : '#94a3b8'
-                                            }}
-                                            transition={{ duration: 0.2 }}
-                                        >
-                                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" />
-                                        </motion.div>
-                                        <Input
-                                            id="signup-password"
-                                            name="password"
-                                            type={showPassword ? 'text' : 'password'}
-                                            required
-                                            onChange={handleInputChange}
-                                            className={`pl-12 pr-12 h-12 rounded-xl border-2 transition-all duration-200 ${
-                                                errors.password && touched.password 
-                                                    ? 'border-red-500 focus-visible:ring-red-500/50 focus-visible:border-red-500' 
-                                                    : 'border-slate-200 dark:border-slate-600 focus-visible:border-green-500 focus-visible:ring-green-500/50'
-                                            }`}
-                                            placeholder="••••••••"
-                                            aria-invalid={!!(errors.password && touched.password)}
-                                        />
-                                        <motion.button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
-                                        >
-                                            <AnimatePresence mode="wait">
-                                                <motion.div
-                                                    key={showPassword ? 'hide' : 'show'}
-                                                    initial={{ rotate: -90, opacity: 0 }}
-                                                    animate={{ rotate: 0, opacity: 1 }}
-                                                    exit={{ rotate: 90, opacity: 0 }}
+                                        <AnimatePresence>
+                                            {errors.email && touched.email && (
+                                                <motion.p 
+                                                    className="text-sm text-red-600 flex items-center"
+                                                    initial={{ opacity: 0, y: -5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -5 }}
                                                     transition={{ duration: 0.2 }}
                                                 >
-                                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                                </motion.div>
-                                            </AnimatePresence>
-                                        </motion.button>
+                                                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
+                                                    {errors.email}
+                                                </motion.p>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
-                                    
-                                    {/* Password Strength Indicator */}
-                                    <AnimatePresence>
-                                        {touched.password && (
-                                            <motion.div 
-                                                className="space-y-2"
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                transition={{ duration: 0.3 }}
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="signup-password" className="text-sm font-medium text-slate-700">
+                                            Contraseña
+                                        </Label>
+                                        <div className="relative">
+                                            <Input
+                                                id="signup-password"
+                                                name="password"
+                                                type={showPassword ? 'text' : 'password'}
+                                                required
+                                                onChange={handleInputChange}
+                                                className={`h-12 rounded-lg border-2 transition-all duration-200 ${
+                                                    errors.password && touched.password 
+                                                        ? 'border-red-500 focus-visible:ring-red-500/50 focus-visible:border-red-500' 
+                                                        : 'border-slate-200 focus-visible:border-blue-500 focus-visible:ring-blue-500/50'
+                                                }`}
+                                                placeholder="••••••••"
+                                                aria-invalid={!!(errors.password && touched.password)}
+                                            />
+                                            <motion.button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
                                             >
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                                        <motion.div 
-                                                            className={`h-full ${
-                                                                passwordStrength <= 2 ? 'bg-red-500' :
-                                                                passwordStrength <= 4 ? 'bg-yellow-500' : 'bg-green-500'
-                                                            }`}
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${(passwordStrength / 6) * 100}%` }}
-                                                            transition={{ duration: 0.3, ease: "easeOut" }}
-                                                        />
-                                                    </div>
-                                                    <motion.span 
-                                                        className="text-xs text-slate-500 dark:text-slate-400 font-medium"
-                                                        key={passwordStrength}
-                                                        initial={{ opacity: 0, scale: 0.8 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
+                                                <AnimatePresence mode="wait">
+                                                    <motion.div
+                                                        key={showPassword ? 'hide' : 'show'}
+                                                        initial={{ rotate: -90, opacity: 0 }}
+                                                        animate={{ rotate: 0, opacity: 1 }}
+                                                        exit={{ rotate: 90, opacity: 0 }}
                                                         transition={{ duration: 0.2 }}
                                                     >
-                                                        {passwordStrength <= 2 ? 'Débil' : passwordStrength <= 4 ? 'Media' : 'Fuerte'}
-                                                    </motion.span>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                    
-                                    <AnimatePresence>
-                                        {errors.password && touched.password && (
-                                            <motion.p 
-                                                className="text-sm text-red-600 dark:text-red-400 flex items-center"
-                                                initial={{ opacity: 0, y: -5 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -5 }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
-                                                {errors.password}
-                                            </motion.p>
-                                        )}
-                                    </AnimatePresence>
-                                </motion.div>
-
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.3, duration: 0.3 }}
-                                >
-                                    <motion.div
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                    >
-                                        <Button
-                                            formAction={(formData) => handleSubmit(formData, 'signup')}
-                                            disabled={isLoading}
-                                            className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl border-0 shadow-lg hover:shadow-xl transition-all duration-200"
-                                        >
-                                            {isLoading ? (
+                                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                                    </motion.div>
+                                                </AnimatePresence>
+                                            </motion.button>
+                                        </div>
+                                        
+                                        {/* Password Strength Indicator */}
+                                        <AnimatePresence>
+                                            {touched.password && (
                                                 <motion.div 
-                                                    className="flex items-center"
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    transition={{ duration: 0.2 }}
+                                                    className="space-y-2"
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    transition={{ duration: 0.3 }}
                                                 >
-                                                    <motion.div 
-                                                        className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full mr-3"
-                                                        animate={{ rotate: 360 }}
-                                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                                    />
-                                                    Creando cuenta...
-                                                </motion.div>
-                                            ) : (
-                                                <motion.div 
-                                                    className="flex items-center"
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    transition={{ duration: 0.2 }}
-                                                >
-                                                    <UserPlus className="w-5 h-5 mr-3" />
-                                                    Crear Cuenta
+                                                    <div className="flex items-center space-x-2">
+                                                        <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                                            <motion.div 
+                                                                className={`h-full ${
+                                                                    passwordStrength <= 2 ? 'bg-red-500' :
+                                                                    passwordStrength <= 4 ? 'bg-yellow-500' : 'bg-green-500'
+                                                                }`}
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${(passwordStrength / 6) * 100}%` }}
+                                                                transition={{ duration: 0.3, ease: "easeOut" }}
+                                                            />
+                                                        </div>
+                                                        <motion.span 
+                                                            className="text-xs text-slate-500 font-medium"
+                                                            key={passwordStrength}
+                                                            initial={{ opacity: 0, scale: 0.8 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            transition={{ duration: 0.2 }}
+                                                        >
+                                                            {passwordStrength <= 2 ? 'Débil' : passwordStrength <= 4 ? 'Media' : 'Fuerte'}
+                                                        </motion.span>
+                                                    </div>
                                                 </motion.div>
                                             )}
-                                        </Button>
-                                    </motion.div>
-                                </motion.div>
+                                        </AnimatePresence>
+                                        
+                                        <AnimatePresence>
+                                            {errors.password && touched.password && (
+                                                <motion.p 
+                                                    className="text-sm text-red-600 flex items-center"
+                                                    initial={{ opacity: 0, y: -5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -5 }}
+                                                    transition={{ duration: 0.2 }}
+                                                >
+                                                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-2"></span>
+                                                    {errors.password}
+                                                </motion.p>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    formAction={(formData) => handleSubmit(formData, 'signup')}
+                                    disabled={isCreatingAccount}
+                                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+                                >
+                                    {isCreatingAccount ? (
+                                        <motion.div 
+                                            className="flex items-center"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            <motion.div 
+                                                className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full mr-3"
+                                                animate={{ rotate: 360 }}
+                                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                            />
+                                            Creando cuenta...
+                                        </motion.div>
+                                    ) : (
+                                        'Crear cuenta'
+                                    )}
+                                </Button>
                             </motion.form>
                         )}
+                    </AnimatePresence>
+
+                    <motion.div 
+                        className="text-center text-sm text-slate-600 mt-6"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.8, duration: 0.5 }}
+                    >
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeTab}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                transition={{ duration: 0.3 }}
+                                className="flex items-center justify-center gap-1"
+                            >
+                                {activeTab === 'login' ? (
+                                    <>
+                                        <span>¿No tienes una cuenta?</span>
+                                        <motion.button
+                                            type="button"
+                                            onClick={() => setActiveTab('signup')}
+                                            className="font-medium text-blue-600 hover:text-blue-700 transition-colors underline"
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                        >
+                                            Regístrate
+                                        </motion.button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>¿Ya tienes una cuenta?</span>
+                                        <motion.button
+                                            type="button"
+                                            onClick={() => setActiveTab('login')}
+                                            className="font-medium text-blue-600 hover:text-blue-700 transition-colors underline"
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                        >
+                                            Inicia sesión
+                                        </motion.button>
+                                    </>
+                                )}
+                            </motion.div>
                         </AnimatePresence>
-
-                        <motion.div 
-                            className="relative"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.8, duration: 0.5 }}
-                        >
-                            <Separator className="my-6" />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <motion.span 
-                                    className="bg-white dark:bg-slate-800 px-3 text-xs text-slate-500 dark:text-slate-400 font-medium"
-                                    initial={{ scale: 0.8, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ delay: 0.9, duration: 0.3 }}
-                                >
-                                    O continúa con
-                                </motion.span>
-                            </div>
-                        </motion.div>
-
-                        <motion.div 
-                            className="text-center text-sm text-slate-600 dark:text-slate-400"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 1, duration: 0.5 }}
-                        >
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={activeTab}
-                                    initial={{ opacity: 0, y: 5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -5 }}
-                                    transition={{ duration: 0.3 }}
-                                    className="flex items-center justify-center gap-1"
-                                >
-                                    {activeTab === 'login' ? (
-                                        <>
-                                            <span>¿No tienes una cuenta?</span>
-                                            <motion.button
-                                                type="button"
-                                                onClick={() => setActiveTab('signup')}
-                                                className="font-medium text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors"
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                            >
-                                                Regístrate aquí
-                                            </motion.button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>¿Ya tienes una cuenta?</span>
-                                            <motion.button
-                                                type="button"
-                                                onClick={() => setActiveTab('login')}
-                                                className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                            >
-                                                Inicia sesión
-                                            </motion.button>
-                                        </>
-                                    )}
-                                </motion.div>
-                            </AnimatePresence>
-                        </motion.div>
-                    </CardContent>
-                </Card>
-            </motion.div>
+                    </motion.div>
+                </motion.div>
+            </div>
         </div>
     )
 }

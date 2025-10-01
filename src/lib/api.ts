@@ -82,7 +82,7 @@ export class ProjectsAPI {
   static async generatePrompt(
     id: string, 
     formData: { [key: string]: string }
-  ): Promise<{ project: PromptProject; generatedPrompt: string }> {
+  ): Promise<{ generatedPrompt: string }> {
     const response = await fetch(`${API_BASE_URL}/${id}/generate`, {
       method: 'POST',
       headers: {

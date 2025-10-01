@@ -41,9 +41,7 @@ model Project {
   description        String
   tags               String[] @default([])
   availableVariables String[] @default([])
-  formData           Json     @default("{}")
   template           String   @default("")
-  generatedPrompt    String   @default("")
   isPublic           Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

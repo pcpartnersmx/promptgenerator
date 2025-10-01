@@ -21,13 +21,30 @@ export async function POST(
     const body = await request.json();
     const { formData } = body;
 
-    // Verificar que el proyecto existe y pertenece al usuario
-    const project = await prisma.project.findFirst({
-      where: {
-        id: id,
-        userId: session.user.id
-      }
+    // Get user role to determine access
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id }
     });
+
+    // Verificar que el proyecto existe y el usuario tiene acceso
+    let project;
+    if (user?.role === 'VIEWER') {
+      // VIEWER users can only access public projects
+      project = await prisma.project.findFirst({
+        where: {
+          id: id,
+          isPublic: true
+        }
+      });
+    } else {
+      // ADMIN and EDITOR users can access their own projects
+      project = await prisma.project.findFirst({
+        where: {
+          id: id,
+          userId: session.user.id
+        }
+      });
+    }
 
     if (!project) {
       return NextResponse.json({ error: 'Proyecto no encontrado' }, { status: 404 });
@@ -53,19 +70,7 @@ export async function POST(
     
     console.log('Prompt generado:', generatedPrompt);
 
-    // Actualizar el proyecto con el prompt generado y los datos del formulario
-    const updatedProject = await prisma.project.update({
-      where: {
-        id: id
-      },
-      data: {
-        formData: formData || {},
-        generatedPrompt
-      }
-    });
-
     return NextResponse.json({
-      project: updatedProject,
       generatedPrompt
     });
   } catch (error) {

@@ -110,15 +110,6 @@ export function useProjects() {
   const generatePrompt = async (id: string, formData: { [key: string]: string }) => {
     try {
       const result = await ProjectsAPI.generatePrompt(id, formData);
-      
-      // Convert string dates to Date objects
-      const projectWithDates = {
-        ...result.project,
-        createdAt: new Date(result.project.createdAt),
-        updatedAt: new Date(result.project.updatedAt)
-      };
-      
-      setProjects(prev => prev.map(p => p.id === id ? projectWithDates : p));
       return result.generatedPrompt;
     } catch (err) {
       toast.error('Error al generar el prompt');

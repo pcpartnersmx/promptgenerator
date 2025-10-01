@@ -57,7 +57,6 @@ export default function ProjectEditor({ project, onSave, onCancel, isEditing = f
           'tono',
           'restricciones'
         ],
-        formData: project?.formData || {},
         template: project?.template || `Eres un experto en marketing digital especializado en {producto}.
 
 Tu objetivo es crear contenido que resuene con {publicoObjetivo} para lograr {objetivo}.
@@ -67,7 +66,6 @@ Tono: {tono}
 Restricciones: {restricciones}
 
 Por favor, proporciona una estrategia detallada y creativa.`,
-        generatedPrompt: project?.generatedPrompt || '',
         isPublic: project?.isPublic || false
       };
       

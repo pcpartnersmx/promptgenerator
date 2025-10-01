@@ -13,9 +13,7 @@ export type PromptProject = {
   createdAt: Date;
   updatedAt: Date;
   availableVariables: string[];
-  formData: { [key: string]: string };
   template: string;
-  generatedPrompt: string;
   isPublic: boolean;
 };
 
@@ -150,9 +148,9 @@ export default function Dashboard({
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.3, delay: 0.3 }}
               >
-                {projects.filter(p => p.generatedPrompt).length}
+                {projects.length}
               </motion.p>
-              <p className="text-sm text-green-600">Prompts Generados</p>
+              <p className="text-sm text-green-600">Templates Activos</p>
             </div>
           </div>
         </motion.div>
@@ -316,16 +314,10 @@ export default function Dashboard({
               )}
 
               {/* Project Stats */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="grid grid-cols-1 gap-3 mb-4">
                 <div className="text-center p-2 bg-gray-50 rounded-lg">
                   <p className="text-sm font-medium text-gray-700">{project.availableVariables.length}</p>
-                  <p className="text-xs text-gray-500">Variables</p>
-                </div>
-                <div className="text-center p-2 bg-gray-50 rounded-lg">
-                  <p className="text-sm font-medium text-gray-700">
-                    {Object.values(project.formData).filter(value => value.trim()).length}
-                  </p>
-                  <p className="text-xs text-gray-500">Completadas</p>
+                  <p className="text-xs text-gray-500">Variables Disponibles</p>
                 </div>
               </div>
 
@@ -336,10 +328,8 @@ export default function Dashboard({
                   <span>Actualizado {formatDate(project.updatedAt)}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className={`w-2 h-2 rounded-full ${
-                    project.generatedPrompt ? 'bg-green-500' : 'bg-gray-400'
-                  }`} />
-                  <span>{project.generatedPrompt ? 'Generado' : 'Borrador'}</span>
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span>Template</span>
                 </div>
               </div>
               </motion.div>

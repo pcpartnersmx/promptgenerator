@@ -65,9 +65,7 @@ export async function PUT(
       description, 
       tags, 
       availableVariables, 
-      formData, 
-      template, 
-      generatedPrompt,
+      template,
       isPublic
     } = body;
 
@@ -89,9 +87,7 @@ export async function PUT(
     if (description !== undefined) updateData.description = description;
     if (tags !== undefined) updateData.tags = tags;
     if (availableVariables !== undefined) updateData.availableVariables = availableVariables;
-    if (formData !== undefined) updateData.formData = formData;
     if (template !== undefined) updateData.template = template;
-    if (generatedPrompt !== undefined) updateData.generatedPrompt = generatedPrompt;
     if (isPublic !== undefined) updateData.isPublic = isPublic;
 
     const project = await prisma.project.update({
