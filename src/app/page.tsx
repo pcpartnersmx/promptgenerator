@@ -718,6 +718,7 @@ export default function Page() {
         onEditProject={setEditingProject}
         onDeleteProject={deleteProject}
         onCreateProject={() => setIsCreatingProject(true)}
+        user={session?.user}
       />
     </SidebarProvider>
   )

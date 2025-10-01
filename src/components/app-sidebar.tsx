@@ -189,14 +189,16 @@ export function AppSidebar({ projects = [], onOpenProject, onEditProject, onDele
         <div className="mt-4">
           <div className="flex items-center justify-between px-2 mb-2">
             <h3 className="text-sm font-semibold text-sidebar-foreground">Proyectos</h3>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onCreateProject}
-              className="h-6 w-6 p-0 hover:bg-sidebar-accent"
-            >
-              <FiPlus className="h-3 w-3" />
-            </Button>
+            {user?.role === 'ADMIN' && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onCreateProject}
+                className="h-6 w-6 p-0 hover:bg-sidebar-accent"
+              >
+                <FiPlus className="h-3 w-3" />
+              </Button>
+            )}
           </div>
           
           <SidebarMenu>
@@ -263,36 +265,38 @@ export function AppSidebar({ projects = [], onOpenProject, onEditProject, onDele
                             <FiFolder className="h-4 w-4 mr-2" />
                             Abrir proyecto
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onEditProject?.(project)}>
-                            <FiEdit2 className="h-4 w-4 mr-2" />
-                            Editar proyecto
-                          </DropdownMenuItem>
                           {user?.role === 'ADMIN' && (
-                            <DropdownMenuItem 
-                              onClick={() => onTogglePublic?.(project.id, !project.isPublic)}
-                              className="text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-900/20"
-                            >
-                              {project.isPublic ? (
-                                <>
-                                  <FiLock className="h-4 w-4 mr-2" />
-                                  Hacer privado
-                                </>
-                              ) : (
-                                <>
-                                  <FiGlobe className="h-4 w-4 mr-2" />
-                                  Hacer público
-                                </>
-                              )}
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem onClick={() => onEditProject?.(project)}>
+                                <FiEdit2 className="h-4 w-4 mr-2" />
+                                Editar proyecto
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => onTogglePublic?.(project.id, !project.isPublic)}
+                                className="text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-900/20"
+                              >
+                                {project.isPublic ? (
+                                  <>
+                                    <FiLock className="h-4 w-4 mr-2" />
+                                    Hacer privado
+                                  </>
+                                ) : (
+                                  <>
+                                    <FiGlobe className="h-4 w-4 mr-2" />
+                                    Hacer público
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => onDeleteProject?.(project.id)}
+                                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+                              >
+                                <FiTrash2 className="h-4 w-4 mr-2" />
+                                Eliminar proyecto
+                              </DropdownMenuItem>
+                            </>
                           )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => onDeleteProject?.(project.id)}
-                            className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
-                          >
-                            <FiTrash2 className="h-4 w-4 mr-2" />
-                            Eliminar proyecto
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

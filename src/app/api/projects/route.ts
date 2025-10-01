@@ -60,6 +60,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Verificar que el usuario es ADMIN
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+
+    if (!user || user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Solo los administradores pueden crear proyectos' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { name, description, tags = [], availableVariables = [] } = body;
 

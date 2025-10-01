@@ -1,8 +1,6 @@
 "use client"
 
-import { IconCirclePlusFilled, IconMail, type Icon } from "@tabler/icons-react"
-import { FaPlus } from "react-icons/fa6";
-import { Button } from "@/components/ui/button"
+import { IconMail, type Icon } from "@tabler/icons-react"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -25,20 +23,6 @@ export function NavMain({
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
-        <SidebarMenu>
-          <SidebarMenuItem className="flex items-center gap-2">
-            <SidebarMenuButton
-              tooltip="Nuevo proyecto"
-              className="flex items-end justify-between"
-            >
-              <span className="h-full flex items-center gap-2 ">
-                <FaPlus />
-                <span>Nuevo proyecto</span>
-              </span>
-              <span className="text-[0.6rem] text-gray-400">CTRL + SHIFT + N</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>

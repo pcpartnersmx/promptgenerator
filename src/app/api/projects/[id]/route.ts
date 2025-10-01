@@ -49,6 +49,15 @@ export async function PUT(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // Verificar que el usuario es ADMIN
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+
+    if (!user || user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Solo los administradores pueden editar proyectos' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { 
@@ -72,17 +81,6 @@ export async function PUT(
 
     if (!existingProject) {
       return NextResponse.json({ error: 'Proyecto no encontrado' }, { status: 404 });
-    }
-
-    // Verificar permisos para editar template
-    if (template !== undefined) {
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id }
-      });
-      
-      if (!user || (user.role !== 'ADMIN' && user.role !== 'EDITOR')) {
-        return NextResponse.json({ error: 'No tienes permisos para editar templates' }, { status: 403 });
-      }
     }
 
     const updateData: Prisma.ProjectUpdateInput = {};
@@ -120,6 +118,15 @@ export async function DELETE(
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    // Verificar que el usuario es ADMIN
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+
+    if (!user || user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Solo los administradores pueden eliminar proyectos' }, { status: 403 });
     }
 
     const { id } = await params;

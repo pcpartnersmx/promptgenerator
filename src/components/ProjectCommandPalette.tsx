@@ -24,6 +24,7 @@ interface ProjectCommandPaletteProps {
   onEditProject: (project: PromptProject) => void;
   onDeleteProject: (projectId: string) => void;
   onCreateProject: () => void;
+  user?: { role: string } | null;
 }
 
 export function ProjectCommandPalette({
@@ -34,6 +35,7 @@ export function ProjectCommandPalette({
   onEditProject,
   onDeleteProject,
   onCreateProject,
+  user,
 }: ProjectCommandPaletteProps) {
   const { data: session } = useSession();
   const [searchValue, setSearchValue] = useState('');
@@ -109,7 +111,7 @@ export function ProjectCommandPalette({
             <p className="text-sm text-muted-foreground mb-2">
               {searchValue ? 'No se encontraron proyectos' : 'No tienes proyectos aún'}
             </p>
-            {!searchValue && (
+            {!searchValue && user?.role === 'ADMIN' && (
               <Button
                 onClick={handleCreateProject}
                 size="sm"
@@ -123,12 +125,14 @@ export function ProjectCommandPalette({
         </CommandEmpty>
 
         {/* Quick Actions */}
-        <CommandGroup heading="Acciones Rápidas">
-          <CommandItem onSelect={handleCreateProject}>
-            <FiPlus className="w-4 h-4 mr-2" />
-            <span>Crear nuevo proyecto</span>
-          </CommandItem>
-        </CommandGroup>
+        {user?.role === 'ADMIN' && (
+          <CommandGroup heading="Acciones Rápidas">
+            <CommandItem onSelect={handleCreateProject}>
+              <FiPlus className="w-4 h-4 mr-2" />
+              <span>Crear nuevo proyecto</span>
+            </CommandItem>
+          </CommandGroup>
+        )}
 
         {/* Projects List */}
         {filteredProjects.length > 0 && (
@@ -185,24 +189,26 @@ export function ProjectCommandPalette({
                   </div>
                   
                   {/* Action Buttons */}
-                  <div className="flex items-center space-x-1 ml-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => handleEditProject(project, e)}
-                      className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
-                    >
-                      <FiEdit3 className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => handleDeleteProject(project.id, e)}
-                      className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
-                    >
-                      <FiTrash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
+                  {user?.role === 'ADMIN' && (
+                    <div className="flex items-center space-x-1 ml-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleEditProject(project, e)}
+                        className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
+                      >
+                        <FiEdit3 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteProject(project.id, e)}
+                        className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+                      >
+                        <FiTrash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
                 </CommandItem>
               ))}
             </CommandGroup>

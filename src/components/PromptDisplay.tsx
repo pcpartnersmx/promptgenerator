@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { FiCopy, FiCheck, FiFileText, FiRotateCcw, FiArrowLeft, FiZap, FiRefreshCw, FiEdit3 } from 'react-icons/fi';
+import { useState, useEffect, useRef } from 'react';
+import { FiCopy, FiCheck, FiFileText, FiRotateCcw, FiArrowLeft, FiZap, FiRefreshCw, FiEdit3, FiX } from 'react-icons/fi';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 type PromptDisplayProps = {
   prompt: string;
@@ -13,6 +14,18 @@ type PromptDisplayProps = {
 
 export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: PromptDisplayProps) {
   const [copied, setCopied] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [aiResponse, setAiResponse] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [responseCopied, setResponseCopied] = useState(false);
+  const responseRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll al final del texto cuando se actualiza la respuesta
+  useEffect(() => {
+    if (responseRef.current && aiResponse) {
+      responseRef.current.scrollTop = responseRef.current.scrollHeight;
+    }
+  }, [aiResponse]);
 
   const handleCopy = async () => {
     try {
@@ -21,6 +34,81 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Error copying to clipboard:', err);
+    }
+  };
+
+  const handleCopyResponse = async () => {
+    try {
+      await navigator.clipboard.writeText(aiResponse);
+      setResponseCopied(true);
+      setTimeout(() => setResponseCopied(false), 2000);
+    } catch (err) {
+      console.error('Error copying to clipboard:', err);
+    }
+  };
+
+  const handleGenerateWithAI = async () => {
+    if (!prompt) return;
+    
+    setIsLoading(true);
+    setIsModalOpen(true);
+    setAiResponse(''); // Limpiar respuesta anterior
+    
+    try {
+      const response = await fetch('/api/openAi/prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ input: prompt }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al generar respuesta con AI');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No se pudo obtener el stream de respuesta');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.content) {
+                setAiResponse(prev => prev + data.content);
+              } else if (data.done) {
+                setIsLoading(false);
+                return;
+              } else if (data.error) {
+                throw new Error(data.error);
+              }
+            } catch (parseError) {
+              console.error('Error parsing SSE data:', parseError);
+            }
+          }
+        }
+      }
+      
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error:', error);
+      setAiResponse('Error al generar respuesta con AI. Por favor, inténtalo de nuevo.');
+      setIsLoading(false);
     }
   };
 
@@ -153,10 +241,29 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
                 Regenerar
               </Button>
               <Button
+                onClick={handleGenerateWithAI}
+                variant="outline"
+                size="lg"
+                className="flex-1 border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 text-blue-600"
+                disabled={!prompt || isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <FiRefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <FiZap className="w-4 h-4 mr-2" />
+                    Generar con AI
+                  </>
+                )}
+              </Button>
+              <Button
                 onClick={onReset}
                 variant="outline"
                 size="lg"
-                className="flex-1 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 text-red-600"
+                className="flex-1 border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 text-blue-600"
               >
                 <FiRotateCcw className="w-4 h-4 mr-2" />
                 Nuevo Prompt
@@ -165,6 +272,109 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
           </div>
         )}
       </div>
+
+      {/* AI Response Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FiZap className="w-5 h-5 text-blue-600" />
+              Respuesta Generada con AI
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex flex-col space-y-4 h-full">
+            {/* Prompt Section */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground">Prompt enviado:</h4>
+              <div className="bg-sidebar-accent/30 border border-sidebar-border rounded-lg p-3 max-h-32 overflow-y-auto">
+                <p className="text-sm whitespace-pre-wrap">{prompt}</p>
+              </div>
+            </div>
+
+            {/* Response Section */}
+            <div className="flex-1 flex flex-col space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium text-muted-foreground">Respuesta de AI:</h4>
+                {aiResponse && !isLoading && (
+                  <Button
+                    onClick={handleCopyResponse}
+                    variant={responseCopied ? "default" : "outline"}
+                    size="sm"
+                    className={`${
+                      responseCopied
+                        ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                        : 'border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                    }`}
+                  >
+                    {responseCopied ? (
+                      <>
+                        <FiCheck className="w-4 h-4 mr-2" />
+                        Copiado
+                      </>
+                    ) : (
+                      <>
+                        <FiCopy className="w-4 h-4 mr-2" />
+                        Copiar Respuesta
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              
+              <div ref={responseRef} className="flex-1 bg-sidebar-accent/30 border border-sidebar-border rounded-lg p-4 overflow-y-auto">
+                {isLoading && !aiResponse ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="text-center">
+                      <FiRefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-600" />
+                      <p className="text-sm text-muted-foreground">Iniciando generación...</p>
+                    </div>
+                  </div>
+                ) : aiResponse ? (
+                  <div className="relative">
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed max-h-[250px] ">
+                      {aiResponse}
+                      {isLoading && (
+                        <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse" />
+                      )}
+                    </div>
+                    {isLoading && (
+                      <div className="flex items-center mt-4 text-xs text-muted-foreground">
+                        <FiRefreshCw className="w-3 h-3 animate-spin mr-2" />
+                        <span>Escribiendo en tiempo real...</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-32">
+                    <p className="text-sm text-muted-foreground">No hay respuesta disponible</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+              >
+                <FiX className="w-4 h-4 mr-2" />
+                Cerrar
+              </Button>
+              {aiResponse && !isLoading && (
+                <Button
+                  onClick={handleCopyResponse}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <FiCopy className="w-4 h-4 mr-2" />
+                  Copiar Respuesta
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
