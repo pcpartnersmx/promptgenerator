@@ -5,10 +5,8 @@ import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { useState, useEffect, use } from 'react'
-import { Eye, EyeOff, Mail, Lock, UserPlus, LogIn, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, Mail, UserPlus, LogIn, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
@@ -280,7 +278,7 @@ export default function LoginPage({
                     >
                         
                         <blockquote className="text-2xl font-bold leading-tight mb-6 text-slate-900">
-                            "Genera prompts de IA profesionales y efectivos para cualquier tarea o proyecto."
+                            &quot;Genera prompts de IA profesionales y efectivos para cualquier tarea o proyecto.&quot;
                         </blockquote>
                         <div className="space-y-1">
                             <p className="text-lg font-medium text-slate-900">Prompt Generator</p>

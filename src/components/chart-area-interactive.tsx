@@ -85,10 +85,10 @@ export function ChartAreaInteractive({ projects }: ChartAreaInteractiveProps) {
         return projectDate.toDateString() === date.toDateString()
       }).length
 
-      // Count generated prompts on this date
+      // Count generated prompts on this date (projects with templates)
       const generatedOnDate = projects.filter(project => {
         const projectDate = new Date(project.updatedAt)
-        return projectDate.toDateString() === date.toDateString() && project.generatedPrompt
+        return projectDate.toDateString() === date.toDateString() && project.template && project.template.length > 0
       }).length
 
       // Count total variables on this date

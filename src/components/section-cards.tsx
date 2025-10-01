@@ -20,13 +20,13 @@ type SectionCardsProps = {
 export function SectionCards({ projects, onCreateProject }: SectionCardsProps) {
   // Calculate statistics
   const totalProjects = projects.length;
-  const generatedPrompts = projects.filter(p => p.generatedPrompt).length;
+  const generatedPrompts = projects.filter(p => p.template && p.template.length > 0).length;
   const allTags = Array.from(new Set(projects.flatMap(project => project.tags)));
   const totalVariables = projects.reduce((sum, project) => sum + project.availableVariables.length, 0);
   
-  // Calculate completion rate
+  // Calculate completion rate (projects with templates)
   const completedProjects = projects.filter(project => 
-    Object.values(project.formData).some(value => value.trim() !== '')
+    project.template && project.template.trim() !== ''
   ).length;
   const completionRate = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0;
 

@@ -159,10 +159,10 @@ const columns = (
     },
   },
   {
-    accessorKey: "generatedPrompt",
+    accessorKey: "template",
     header: "Estado",
     cell: ({ row }) => {
-      const hasGeneratedPrompt = !!row.original.generatedPrompt;
+      const hasGeneratedPrompt = !!(row.original.template && row.original.template.length > 0);
       return (
         <Badge variant="outline" className="text-muted-foreground px-1.5">
           {hasGeneratedPrompt ? (
