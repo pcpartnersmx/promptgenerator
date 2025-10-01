@@ -14,10 +14,11 @@ type FormComponentProps = {
   availableVariables: string[];
   template?: string;
   userRole?: string;
+  responseMode?: 'PROMPT' | 'AI_RESPONSE';
   onGeneratePrompt: (formData: FormData) => void;
 };
 
-export default function FormComponent({ availableVariables, template, userRole, onGeneratePrompt }: FormComponentProps) {
+export default function FormComponent({ availableVariables, template, userRole, responseMode, onGeneratePrompt }: FormComponentProps) {
   const { formData, setFormData } = useProject();
   const [errors, setErrors] = useState<Partial<FormData>>({});
 
@@ -139,6 +140,19 @@ export default function FormComponent({ availableVariables, template, userRole, 
         })}
 
         <div className="pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-600">Tipo de respuesta:</span>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                responseMode === 'AI_RESPONSE' 
+                  ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+                  : 'bg-blue-100 text-blue-700 border border-blue-200'
+              }`}>
+                {responseMode === 'AI_RESPONSE' ? 'Respuesta IA' : 'Prompt'}
+              </span>
+            </div>
+          </div>
+          
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="w-full">
@@ -149,7 +163,7 @@ export default function FormComponent({ availableVariables, template, userRole, 
                   disabled={!hasValidTemplate()}
                   className="w-full bg-sidebar-accent hover:bg-sidebar-accent/90 text-sidebar-accent-foreground px-6 py-4 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sidebar-accent disabled:hover:shadow-lg"
                 >
-                  <span>Generar Prompt</span>
+                  <span>Generar {responseMode === 'AI_RESPONSE' ? 'Respuesta IA' : 'Prompt'}</span>
                   <FiArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
                 </Button>
               </div>

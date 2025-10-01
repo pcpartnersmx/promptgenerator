@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, tags = [], availableVariables = [] } = body;
+    const { name, description, tags = [], availableVariables = [], responseMode = 'PROMPT' } = body;
 
     if (!name || !description) {
       return NextResponse.json({ error: 'Nombre y descripción son requeridos' }, { status: 400 });
@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
         description,
         tags,
         availableVariables,
+        responseMode,
         userId: session.user.id
       }
     });

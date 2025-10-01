@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { Progress } from '@/components/ui/progress'
 import AuthenticatedLayout from './authenticated-layout'
+import { ProjectsProvider } from '@/contexts/projects-context'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const { data: session, status } = useSession()
@@ -57,6 +58,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         src="/logo.webp" 
                         alt="Logo" 
                         className="animate-pulse"
+                        
                     />
                     <div className="w-full space-y-2">
                         <Progress value={progress} className="h-2" />
@@ -71,9 +73,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     if (status === 'authenticated') {
         return (
-            <AuthenticatedLayout>
-                {children}
-            </AuthenticatedLayout>
+            <ProjectsProvider>
+                <AuthenticatedLayout>
+                    {children}
+                </AuthenticatedLayout>
+            </ProjectsProvider>
         )
     } else {
         return <div>

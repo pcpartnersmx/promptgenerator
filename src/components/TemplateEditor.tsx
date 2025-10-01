@@ -16,13 +16,13 @@ type TemplateEditorProps = {
   onGeneratePrompt?: () => void;
 };
 
-export default function TemplateEditor({ 
-  template, 
-  onSubmit, 
-  onBack, 
-  availableVariables: propAvailableVariables, 
-  onAddVariable, 
-  onDeleteVariable, 
+export default function TemplateEditor({
+  template,
+  onSubmit,
+  onBack,
+  availableVariables: propAvailableVariables,
+  onAddVariable,
+  onDeleteVariable,
   onUpdateVariable,
   onTemplateChange,
   onGeneratePrompt
@@ -48,7 +48,7 @@ export default function TemplateEditor({
       setIsSaving(true);
       onTemplateChange(debouncedTemplate);
       setLastSavedTemplate(debouncedTemplate);
-      
+
       // Reset saving state after a short delay
       setTimeout(() => {
         setIsSaving(false);
@@ -64,7 +64,7 @@ export default function TemplateEditor({
       const variablePattern = `{${variable}}`;
       const newText = templateText.substring(0, start) + variablePattern + templateText.substring(end);
       setTemplateText(newText);
-      
+
       // Focus back to textarea and set cursor position
       setTimeout(() => {
         textarea.focus();
@@ -112,175 +112,197 @@ export default function TemplateEditor({
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg border border-blue-200">
-            <FiEdit3 className="w-5 h-5 text-blue-600" />
+          <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
+            <FiEdit3 className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-black">Editor de Template</h2>
-            <p className="text-gray-600 text-sm">Personaliza tu template con variables dinámicas</p>
+            <h2 className="text-2xl font-semibold text-foreground">Editor de Template</h2>
+            <p className="text-muted-foreground text-sm">Personaliza tu template con variables dinámicas</p>
           </div>
         </div>
-        <button
+        <Button
+          variant="ghost"
           onClick={onBack}
-          className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-black hover:bg-gray-100 rounded-lg transition-all duration-200"
+          className="flex items-center gap-2"
         >
           <FiArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Volver</span>
-        </button>
+        </Button>
       </div>
 
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <FiCode className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-medium text-gray-700">Variables Disponibles</h3>
-        </div>
-        
-        {/* Add new variable section */}
-        <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-            <FiPlus className="w-4 h-4 text-green-500" />
-            Agregar Nueva Variable
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newVariable}
-              onChange={(e) => setNewVariable(e.target.value)}
-              placeholder="nombre_variable"
-              className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              onKeyPress={(e) => e.key === 'Enter' && addVariable()}
-            />
-            <button
-              onClick={addVariable}
-              className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              <FiPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Agregar</span>
-            </button>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Editor Section */}
+        <div className="lg:col-span-2">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <FiEdit3 className="w-4 h-4 text-primary" />
+                Template del Prompt
+              </label>
+              <div className="relative">
+                <textarea
+                  id="template-textarea"
+                  value={templateText}
+                  onChange={(e) => setTemplateText(e.target.value)}
+                  placeholder="Escribe tu template aquí usando las variables disponibles..."
+                  className="w-full h-80 px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-none transition-all duration-200 font-mono text-sm leading-relaxed"
+                />
+                <div className="absolute bottom-3 right-3 flex items-center gap-2 text-xs text-muted-foreground bg-card/80 backdrop-blur-sm px-2 py-1 rounded">
+                  <span>{templateText.length} caracteres</span>
+                  {isSaving && (
+                    <div className="flex items-center gap-1 text-primary">
+                      <div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <span>Guardando...</span>
+                    </div>
+                  )}
+                  {!isSaving && debouncedTemplate === lastSavedTemplate && templateText !== '' && (
+                    <div className="flex items-center gap-1 text-green-600">
+                      <FiCheck className="w-3 h-3" />
+                      <span>Guardado</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={onBack}
+                className="flex-1"
+              >
+                <FiArrowLeft className="w-4 h-4 mr-2" />
+                Volver
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                onClick={onGeneratePrompt}
+                className="flex-1 group"
+              >
+                <span>Generar Prompt</span>
+                <FiArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
+              </Button>
+            </div>
+          </form>
         </div>
 
-        {/* Variables list */}
-        <div className="flex flex-wrap gap-3 mb-4">
-          {propAvailableVariables.map((variable) => (
-            <div key={variable} className="flex items-center gap-1">
-              {editingVariable === variable ? (
-                <div className="flex items-center gap-1 bg-gray-100 p-2 rounded-lg border border-gray-300">
-                  <input
-                    type="text"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    className="px-2 py-1 bg-white border border-gray-300 rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onKeyPress={(e) => e.key === 'Enter' && saveEdit()}
-                    autoFocus
-                  />
-                  <button
-                    onClick={saveEdit}
-                    className="p-1 bg-green-500 hover:bg-green-600 text-white rounded transition-colors duration-200"
-                    title="Guardar"
-                  >
-                    <FiSave className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="p-1 bg-gray-500 hover:bg-gray-600 text-white rounded transition-colors duration-200"
-                    title="Cancelar"
-                  >
-                    <FiX className="w-3 h-3" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    onClick={() => handleVariableClick(variable)}
-                    className="group flex items-center gap-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 border border-blue-300 hover:border-blue-400 text-blue-700 hover:text-blue-800 text-sm rounded-lg transition-all duration-200"
-                  >
-                    <FiCode className="w-3 h-3" />
-                    {`{${variable}}`}
-                  </button>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => startEditing(variable)}
-                      className="p-1.5 bg-yellow-100 hover:bg-yellow-200 border border-yellow-300 hover:border-yellow-400 text-yellow-700 hover:text-yellow-800 rounded transition-all duration-200"
-                      title="Editar"
-                    >
-                      <FiEdit3 className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => deleteVariable(variable)}
-                      className="p-1.5 bg-red-100 hover:bg-red-200 border border-red-300 hover:border-red-400 text-red-700 hover:text-red-800 rounded transition-all duration-200"
-                      title="Eliminar"
-                    >
-                      <FiTrash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </>
-              )}
+        {/* Variables Panel */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <FiCode className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-medium text-foreground">Variables Disponibles</h3>
+          </div>
+
+          {/* Add new variable section */}
+          <div className="p-4 bg-muted/50 border border-border rounded-lg">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
+              <FiPlus className="w-4 h-4 text-green-600" />
+              Agregar Nueva Variable
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newVariable}
+                onChange={(e) => setNewVariable(e.target.value)}
+                placeholder="nombre_variable"
+                className="flex-1 px-3 py-2 bg-background border border-border rounded-md text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200"
+                onKeyPress={(e) => e.key === 'Enter' && addVariable()}
+              />
+              <Button
+                onClick={addVariable}
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <FiPlus className="w-4 h-4" />
+                <span className="hidden sm:inline">Agregar</span>
+              </Button>
             </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <FiCode className="w-4 h-4" />
-          <span>Haz clic en una variable para insertarla en el template</span>
+          </div>
+
+          {/* Variables list */}
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {propAvailableVariables.map((variable) => (
+                <div key={variable} className="flex items-center gap-1">
+                  {editingVariable === variable ? (
+                    <div className="flex items-center gap-1 bg-muted p-2 rounded-md border border-border">
+                      <input
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        className="px-2 py-1 bg-background border border-border rounded text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        onKeyPress={(e) => e.key === 'Enter' && saveEdit()}
+                        autoFocus
+                      />
+                      <Button
+                        onClick={saveEdit}
+                        size="icon"
+                        className="h-6 w-6 bg-green-600 hover:bg-green-700 text-white"
+                        title="Guardar"
+                      >
+                        <FiSave className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        onClick={cancelEdit}
+                        size="icon"
+                        variant="outline"
+                        className="h-6 w-6"
+                        title="Cancelar"
+                      >
+                        <FiX className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        onClick={() => handleVariableClick(variable)}
+                        variant="outline"
+                        size="sm"
+                        className="group bg-primary/5 hover:bg-primary/10 border-primary/20 hover:border-primary/30 text-primary hover:text-primary font-mono"
+                      >
+                        <FiCode className="w-3 h-3" />
+                        {`{${variable}}`}
+                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          onClick={() => startEditing(variable)}
+                          size="icon"
+                          variant="outline"
+                          className="h-6 w-6 bg-yellow-50 hover:bg-yellow-100 border-yellow-200 hover:border-yellow-300 text-yellow-700 hover:text-yellow-800"
+                          title="Editar"
+                        >
+                          <FiEdit3 className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          onClick={() => deleteVariable(variable)}
+                          size="icon"
+                          variant="outline"
+                          className="h-6 w-6 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300 text-red-700 hover:text-red-800"
+                          title="Eliminar"
+                        >
+                          <FiTrash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
+              <FiCode className="w-3 h-3" />
+              <span>Haz clic en una variable para insertarla en el template</span>
+            </div>
+          </div>
         </div>
       </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-            <FiEdit3 className="w-4 h-4 text-blue-600" />
-            Template del Prompt
-          </label>
-          <div className="relative">
-            <textarea
-              id="template-textarea"
-              value={templateText}
-              onChange={(e) => setTemplateText(e.target.value)}
-              placeholder="Escribe tu template aquí usando las variables disponibles..."
-              className="w-full h-64 px-4 py-3 bg-white border border-gray-300 rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 font-mono text-sm leading-relaxed"
-            />
-            <div className="absolute bottom-3 right-3 flex items-center gap-2 text-xs text-gray-500">
-              <span>{templateText.length} caracteres</span>
-              {isSaving && (
-                <div className="flex items-center gap-1 text-blue-600">
-                  <div className="w-3 h-3 border border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                  <span>Guardando...</span>
-                </div>
-              )}
-              {!isSaving && debouncedTemplate === lastSavedTemplate && templateText !== '' && (
-                <div className="flex items-center gap-1 text-green-600">
-                  <FiCheck className="w-3 h-3" />
-                  <span>Guardado</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            onClick={onBack}
-            className="flex-1 border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            <FiArrowLeft className="w-4 h-4 mr-2" />
-            Volver
-          </Button>
-          <Button
-            type="button"
-            size="lg"
-            onClick={onGeneratePrompt}
-            className="flex-1 bg-sidebar-accent hover:bg-sidebar-accent/90 text-sidebar-accent-foreground px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <span>Generar Prompt</span>
-            <FiArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
-          </Button>
-        </div>
-      </form>
     </div>
   );
 }

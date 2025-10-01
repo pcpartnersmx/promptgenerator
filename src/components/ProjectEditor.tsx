@@ -6,6 +6,7 @@ import { FiSave, FiX, FiTag, FiPlus, FiTrash2, FiArrowLeft } from 'react-icons/f
 import { PromptProject } from './Dashboard';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Switch } from './ui/switch';
 
 type ProjectEditorProps = {
   project?: PromptProject | null;
@@ -20,12 +21,14 @@ export default function ProjectEditor({ project, onSave, onCancel, isEditing = f
   const [tags, setTags] = useState<string[]>(project?.tags || []);
   const [newTag, setNewTag] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isPromptMode, setIsPromptMode] = useState(project?.responseMode === 'AI_RESPONSE' ? false : true);
 
   useEffect(() => {
     if (project) {
       setName(project.name);
       setDescription(project.description);
       setTags(project.tags);
+      setIsPromptMode(project.responseMode === 'AI_RESPONSE' ? false : true);
     }
   }, [project]);
 
@@ -66,9 +69,10 @@ Tono: {tono}
 Restricciones: {restricciones}
 
 Por favor, proporciona una estrategia detallada y creativa.`,
-        isPublic: project?.isPublic || false
+        isPublic: project?.isPublic || false,
+        responseMode: (isPromptMode ? 'PROMPT' : 'AI_RESPONSE') as 'PROMPT' | 'AI_RESPONSE'
       };
-      
+
       onSave(projectData);
       toast.success(isEditing ? 'Proyecto actualizado exitosamente' : 'Proyecto creado exitosamente');
     } else {
@@ -101,7 +105,7 @@ Por favor, proporciona una estrategia detallada y creativa.`,
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="space-y-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -109,7 +113,7 @@ Por favor, proporciona una estrategia detallada y creativa.`,
       transition={{ duration: 0.3 }}
     >
       {/* Header */}
-      <motion.div 
+      <motion.div
         className="flex items-center justify-between"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -139,7 +143,7 @@ Por favor, proporciona una estrategia detallada y creativa.`,
       </motion.div>
 
       {/* Form */}
-      <motion.div 
+      <motion.div
         className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -156,9 +160,8 @@ Por favor, proporciona una estrategia detallada y creativa.`,
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej: Marketing para E-commerce"
-              className={`w-full px-4 py-3 bg-white border rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-              }`}
+              className={`w-full px-4 py-3 bg-white border rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
+                }`}
               onKeyPress={handleKeyPress}
             />
             {errors.name && (
@@ -176,9 +179,8 @@ Por favor, proporciona una estrategia detallada y creativa.`,
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe el propósito y contexto de este proyecto..."
               rows={3}
-              className={`w-full px-4 py-3 bg-white border rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none ${
-                errors.description ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-              }`}
+              className={`w-full px-4 py-3 bg-white border rounded-xl text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none ${errors.description ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
+                }`}
             />
             {errors.description && (
               <p className="mt-1 text-sm text-red-500">{errors.description}</p>
@@ -190,7 +192,7 @@ Por favor, proporciona una estrategia detallada y creativa.`,
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Etiquetas
             </label>
-            
+
             {/* Add Tag Input */}
             <div className="flex gap-2 mb-3">
               <input
@@ -201,14 +203,14 @@ Por favor, proporciona una estrategia detallada y creativa.`,
                 className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 onKeyPress={handleKeyPress}
               />
-            <motion.button
-              onClick={addTag}
-              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <FiPlus className="w-4 h-4" />
-            </motion.button>
+              <motion.button
+                onClick={addTag}
+                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <FiPlus className="w-4 h-4" />
+              </motion.button>
             </div>
 
             {/* Tags List */}
@@ -238,15 +240,36 @@ Por favor, proporciona una estrategia detallada y creativa.`,
                 ))}
               </div>
             )}
-            
             <p className="mt-2 text-xs text-gray-500">
               Las etiquetas te ayudan a organizar y encontrar tus proyectos fácilmente
             </p>
+            {/* Mode Switch */}
+            <div className="my-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Modo de respuesta
+              </label>
+              <div className="flex gap-2">
+                <span className={`text-sm font-medium transition-colors duration-200 ${isPromptMode ? 'text-gray-900' : 'text-gray-500'
+                  }`}>
+                  Prompt
+                </span>
+                <Switch
+                  checked={!isPromptMode}
+                  onCheckedChange={(checked) => setIsPromptMode(!checked)}
+                />
+                <span className={`text-sm font-medium transition-colors duration-200 ${!isPromptMode ? 'text-gray-900' : 'text-gray-500'
+                  }`}>
+                  Respuesta IA
+                </span>
+              </div>
+            </div>
+
+
           </div>
         </div>
 
         {/* Actions */}
-        <motion.div 
+        <motion.div
           className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

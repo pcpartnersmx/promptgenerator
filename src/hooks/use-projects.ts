@@ -47,6 +47,9 @@ export function useProjects() {
     description: string;
     tags?: string[];
     availableVariables?: string[];
+    template?: string;
+    isPublic?: boolean;
+    responseMode?: 'PROMPT' | 'AI_RESPONSE';
   }) => {
     try {
       const newProject = await ProjectsAPI.createProject(projectData);
@@ -118,6 +121,32 @@ export function useProjects() {
     }
   };
 
+  const generateAIResponse = async (prompt: string) => {
+    try {
+      const result = await ProjectsAPI.generateAIResponse(prompt);
+      return result.aiResponse;
+    } catch (err) {
+      toast.error('Error al generar la respuesta de IA');
+      console.error('Error generating AI response:', err);
+      throw err;
+    }
+  };
+
+  const generateAIResponseStream = async (
+    prompt: string,
+    onChunk: (chunk: string) => void,
+    onComplete: () => void,
+    onError: (error: string) => void
+  ) => {
+    try {
+      await ProjectsAPI.generateAIResponseStream(prompt, onChunk, onComplete, onError);
+    } catch (err) {
+      toast.error('Error al generar la respuesta de IA');
+      console.error('Error generating AI response stream:', err);
+      onError(err instanceof Error ? err.message : 'Error desconocido');
+    }
+  };
+
   return {
     projects,
     isLoading,
@@ -126,6 +155,8 @@ export function useProjects() {
     updateProject,
     deleteProject,
     generatePrompt,
+    generateAIResponse,
+    generateAIResponseStream,
     refreshProjects: loadProjects
   };
 }

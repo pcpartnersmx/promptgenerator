@@ -66,7 +66,8 @@ export async function PUT(
       tags, 
       availableVariables, 
       template,
-      isPublic
+      isPublic,
+      responseMode
     } = body;
 
     // Verificar que el proyecto existe y pertenece al usuario
@@ -89,6 +90,7 @@ export async function PUT(
     if (availableVariables !== undefined) updateData.availableVariables = availableVariables;
     if (template !== undefined) updateData.template = template;
     if (isPublic !== undefined) updateData.isPublic = isPublic;
+    if (responseMode !== undefined) updateData.responseMode = responseMode;
 
     const project = await prisma.project.update({
       where: {

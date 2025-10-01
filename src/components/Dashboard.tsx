@@ -15,6 +15,9 @@ export type PromptProject = {
   availableVariables: string[];
   template: string;
   isPublic: boolean;
+  responseMode: 'PROMPT' | 'AI_RESPONSE';
+  generatedPrompt?: string;
+  aiResponse?: string;
 };
 
 type DashboardProps = {

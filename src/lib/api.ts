@@ -97,4 +97,86 @@ export class ProjectsAPI {
     
     return response.json();
   }
+
+  // Generar respuesta de IA
+  static async generateAIResponse(prompt: string): Promise<{ aiResponse: string }> {
+    const response = await fetch('/api/openAi/generate-response', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al generar la respuesta de IA');
+    }
+    
+    return response.json();
+  }
+
+  // Generar respuesta de IA con streaming
+  static async generateAIResponseStream(
+    prompt: string,
+    onChunk: (chunk: string) => void,
+    onComplete: () => void,
+    onError: (error: string) => void
+  ): Promise<void> {
+    try {
+      const response = await fetch('/api/openAi/prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ input: prompt }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al generar la respuesta de IA');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No se pudo obtener el stream de respuesta');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.content) {
+                onChunk(data.content);
+              } else if (data.done) {
+                onComplete();
+                return;
+              } else if (data.error) {
+                onError(data.error);
+                return;
+              }
+            } catch (parseError) {
+              console.error('Error parsing SSE data:', parseError);
+            }
+          }
+        }
+      }
+      
+      onComplete();
+    } catch (error) {
+      console.error('Error:', error);
+      onError(error instanceof Error ? error.message : 'Error desconocido');
+    }
+  }
 }

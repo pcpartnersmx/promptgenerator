@@ -10,7 +10,7 @@ import {
 import { PromptProject } from "@/components/Dashboard";
 import { ProjectCommandPalette } from "@/components/ProjectCommandPalette";
 import { useCommandPalette } from "@/hooks/use-command-palette";
-import { useProjects } from "@/hooks/use-projects";
+import { useProjectsContext } from "@/contexts/projects-context";
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -41,7 +41,7 @@ function AuthenticatedLayoutContent({ children }: AuthenticatedLayoutProps) {
     setIsCommandPaletteOpen
   );
 
-  // Use projects hook
+  // Use projects context
   const {
     projects,
     isLoading,
@@ -49,7 +49,7 @@ function AuthenticatedLayoutContent({ children }: AuthenticatedLayoutProps) {
     createProject: apiCreateProject,
     updateProject: apiUpdateProject,
     deleteProject: apiDeleteProject,
-  } = useProjects();
+  } = useProjectsContext();
 
   // Project management functions
   const createProject = async (projectData: Omit<PromptProject, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -58,7 +58,10 @@ function AuthenticatedLayoutContent({ children }: AuthenticatedLayoutProps) {
         name: projectData.name,
         description: projectData.description,
         tags: projectData.tags,
-        availableVariables: projectData.availableVariables
+        availableVariables: projectData.availableVariables,
+        template: projectData.template,
+        isPublic: projectData.isPublic,
+        responseMode: projectData.responseMode
       });
       setIsCreatingProject(false);
     } catch (error) {

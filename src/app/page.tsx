@@ -6,7 +6,7 @@ import ProjectEditor from "@/components/ProjectEditor"
 import FormComponent from "@/components/FormComponent"
 import TemplateEditor from "@/components/TemplateEditor"
 import PromptDisplay from "@/components/PromptDisplay"
-import { useProjects } from "@/hooks/use-projects"
+import { useProjectsContext } from "@/contexts/projects-context"
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiPlus, FiFolder, FiZap, FiSettings, FiEdit3, FiFileText, FiArrowLeft } from 'react-icons/fi';
@@ -28,15 +28,20 @@ export default function Page() {
     clearFormData
   } = useProject();
 
-  // Use projects hook
+  // Estado para manejar el streaming de IA
+  const [isStreamingAI, setIsStreamingAI] = useState(false);
+
+  // Use projects context
   const {
     projects,
     isLoading,
     error,
     createProject: apiCreateProject,
     updateProject: apiUpdateProject,
-    generatePrompt: apiGeneratePrompt
-  } = useProjects();
+    generatePrompt: apiGeneratePrompt,
+    generateAIResponse: apiGenerateAIResponse,
+    generateAIResponseStream
+  } = useProjectsContext();
 
   // Sync currentProject with projects array when it updates
   useEffect(() => {
@@ -56,7 +61,10 @@ export default function Page() {
         name: projectData.name,
         description: projectData.description,
         tags: projectData.tags,
-        availableVariables: projectData.availableVariables
+        availableVariables: projectData.availableVariables,
+        template: projectData.template,
+        isPublic: projectData.isPublic,
+        responseMode: projectData.responseMode
       });
       setIsCreatingProject(false);
     } catch (error) {
@@ -104,6 +112,31 @@ export default function Page() {
         
         // Store the generated prompt in state for display
         setCurrentProject(prev => prev ? { ...prev, generatedPrompt } : null);
+        
+        // If responseMode is AI_RESPONSE, generate AI response automatically with streaming
+        if (currentProject.responseMode === 'AI_RESPONSE') {
+          console.log('Iniciando generación de respuesta de IA con streaming...');
+          setIsStreamingAI(true);
+          // Generate AI response with streaming
+          let streamingResponse = '';
+          generateAIResponseStream(
+            generatedPrompt,
+            (chunk: string) => {
+              streamingResponse += chunk;
+              setCurrentProject(prev => prev ? { ...prev, aiResponse: streamingResponse } : null);
+            },
+            () => {
+              console.log('Streaming completado');
+              setIsStreamingAI(false);
+              setCurrentProject(prev => prev ? { ...prev, aiResponse: streamingResponse } : null);
+            },
+            (error: string) => {
+              console.error('Error en streaming:', error);
+              setIsStreamingAI(false);
+              setCurrentProject(prev => prev ? { ...prev, aiResponse: 'Error al generar respuesta: ' + error } : null);
+            }
+          );
+        }
         
         // Navigate to result tab
         setCurrentTab('result');
@@ -356,6 +389,7 @@ export default function Page() {
                         availableVariables={currentProject.availableVariables}
                         template={currentProject.template}
                         userRole={session?.user?.role}
+                        responseMode={currentProject.responseMode}
                         onGeneratePrompt={handleGeneratePrompt}
                       />
                     </div>
@@ -402,12 +436,16 @@ export default function Page() {
                     <div className="p-6 h-full">
                       <PromptDisplay
                         prompt={currentProject.generatedPrompt || ''}
+                        aiResponse={currentProject.aiResponse}
+                        responseMode={currentProject.responseMode}
+                        isStreamingAI={isStreamingAI}
                         onGenerate={() => {
                           // Generate with empty form data for template preview
                           handleGeneratePrompt({});
                         }}
                         onBack={() => setCurrentTab('form')}
                         onReset={handleResetForm}
+                        onSwitchToResult={() => setCurrentTab('result')}
                       />
                     </div>
                   </div>

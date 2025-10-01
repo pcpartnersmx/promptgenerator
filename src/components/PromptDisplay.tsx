@@ -7,25 +7,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 type PromptDisplayProps = {
   prompt: string;
+  aiResponse?: string;
+  responseMode?: 'PROMPT' | 'AI_RESPONSE';
+  isStreamingAI?: boolean;
   onGenerate: () => void;
   onBack: () => void;
   onReset: () => void;
+  onSwitchToResult?: () => void;
 };
 
-export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: PromptDisplayProps) {
+export default function PromptDisplay({ prompt, aiResponse: propAiResponse, responseMode, isStreamingAI = false, onGenerate, onBack, onReset, onSwitchToResult }: PromptDisplayProps) {
   const [copied, setCopied] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [aiResponse, setAiResponse] = useState('');
+  const [localAiResponse, setLocalAiResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [responseCopied, setResponseCopied] = useState(false);
   const responseRef = useRef<HTMLDivElement>(null);
 
+  // Use prop AI response if available, otherwise use local state
+  const displayAiResponse = propAiResponse || localAiResponse;
+
   // Auto-scroll al final del texto cuando se actualiza la respuesta
   useEffect(() => {
-    if (responseRef.current && aiResponse) {
+    if (responseRef.current && displayAiResponse) {
       responseRef.current.scrollTop = responseRef.current.scrollHeight;
     }
-  }, [aiResponse]);
+  }, [displayAiResponse]);
 
   const handleCopy = async () => {
     try {
@@ -39,7 +46,7 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
 
   const handleCopyResponse = async () => {
     try {
-      await navigator.clipboard.writeText(aiResponse);
+      await navigator.clipboard.writeText(displayAiResponse);
       setResponseCopied(true);
       setTimeout(() => setResponseCopied(false), 2000);
     } catch (err) {
@@ -50,9 +57,14 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
   const handleGenerateWithAI = async () => {
     if (!prompt) return;
     
+    // Para proyectos AI_RESPONSE, cambiar a la tab de resultado inmediatamente
+    if (responseMode === 'AI_RESPONSE' && onSwitchToResult) {
+      onSwitchToResult();
+    }
+    
     setIsLoading(true);
     setIsModalOpen(true);
-    setAiResponse(''); // Limpiar respuesta anterior
+    setLocalAiResponse(''); // Limpiar respuesta anterior
     
     try {
       const response = await fetch('/api/openAi/prompt', {
@@ -90,7 +102,7 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
               const data = JSON.parse(line.slice(6));
               
               if (data.content) {
-                setAiResponse(prev => prev + data.content);
+                setLocalAiResponse(prev => prev + data.content);
               } else if (data.done) {
                 setIsLoading(false);
                 return;
@@ -107,7 +119,7 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
       setIsLoading(false);
     } catch (error) {
       console.error('Error:', error);
-      setAiResponse('Error al generar respuesta con AI. Por favor, inténtalo de nuevo.');
+      setLocalAiResponse('Error al generar respuesta con AI. Por favor, inténtalo de nuevo.');
       setIsLoading(false);
     }
   };
@@ -117,12 +129,27 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-sidebar-accent rounded-xl">
-            <FiFileText className="w-6 h-6 text-sidebar-accent-foreground" />
+          <div className={`p-3 rounded-xl ${
+            responseMode === 'AI_RESPONSE' 
+              ? 'bg-primary/10 border border-primary/20' 
+              : 'bg-sidebar-accent'
+          }`}>
+            {responseMode === 'AI_RESPONSE' ? (
+              <FiZap className="w-6 h-6 text-primary" />
+            ) : (
+              <FiFileText className="w-6 h-6 text-sidebar-accent-foreground" />
+            )}
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-sidebar-foreground">Prompt Generado</h2>
-            <p className="text-muted-foreground">Tu prompt personalizado está listo para usar</p>
+            <h2 className="text-2xl font-bold text-foreground">
+              {responseMode === 'AI_RESPONSE' ? 'Respuesta Generada' : 'Prompt Generado'}
+            </h2>
+            <p className="text-muted-foreground">
+              {responseMode === 'AI_RESPONSE' 
+                ? 'Tu respuesta de IA está lista para usar' 
+                : 'Tu prompt personalizado está listo para usar'
+              }
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -130,7 +157,6 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
             variant="ghost"
             size="sm"
             onClick={onBack}
-            className="text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
           >
             <FiArrowLeft className="w-4 h-4 mr-2" />
             Volver
@@ -139,7 +165,6 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
             variant="ghost"
             size="sm"
             onClick={onReset}
-            className="text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
           >
             <FiRotateCcw className="w-4 h-4 mr-2" />
             Reiniciar
@@ -166,7 +191,6 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
               <Button
                 onClick={onGenerate}
                 size="lg"
-                className="bg-sidebar-accent hover:bg-sidebar-accent/90 text-sidebar-accent-foreground px-8 py-4 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 <FiZap className="w-5 h-5 mr-2" />
                 Generar Prompt
@@ -177,74 +201,141 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
 
         {prompt && (
           <div className="flex-1 flex flex-col space-y-6">
-            {/* Prompt Display Card */}
-            <div className="flex-1 bg-background border border-sidebar-border rounded-xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-sidebar-accent rounded-lg">
-                    <FiFileText className="w-5 h-5 text-sidebar-accent-foreground" />
+            {/* Show Prompt Display Card only for PROMPT projects */}
+            {responseMode !== 'AI_RESPONSE' && (
+              <div className="flex-1 bg-card border border-border rounded-xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
+                      <FiFileText className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">Prompt Final</h3>
+                      <p className="text-sm text-muted-foreground">Listo para copiar y usar</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-sidebar-foreground">Prompt Final</h3>
-                    <p className="text-sm text-muted-foreground">Listo para copiar y usar</p>
+                  <Button
+                    onClick={handleCopy}
+                    variant={copied ? "default" : "outline"}
+                    size="sm"
+                    className={copied ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : ""}
+                  >
+                    {copied ? (
+                      <>
+                        <FiCheck className="w-4 h-4 mr-2" />
+                        Copiado
+                      </>
+                    ) : (
+                      <>
+                        <FiCopy className="w-4 h-4 mr-2" />
+                        Copiar
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <div className="bg-muted/30 border border-border rounded-lg p-4 min-h-[200px]">
+                  <div className="whitespace-pre-wrap text-foreground leading-relaxed font-mono text-sm">
+                    {prompt}
                   </div>
                 </div>
-                <Button
-                  onClick={handleCopy}
-                  variant={copied ? "default" : "outline"}
-                  size="sm"
-                  className={`${
-                    copied
-                      ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
-                      : 'border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                  }`}
-                >
-                  {copied ? (
-                    <>
-                      <FiCheck className="w-4 h-4 mr-2" />
-                      Copiado
-                    </>
-                  ) : (
-                    <>
-                      <FiCopy className="w-4 h-4 mr-2" />
-                      Copiar
-                    </>
+              </div>
+            )}
+
+            {/* AI Response Section - Show automatically for AI_RESPONSE projects */}
+            {responseMode === 'AI_RESPONSE' && (displayAiResponse || isStreamingAI) && (
+              <div className="flex-1 bg-card border border-border rounded-xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
+                      <FiZap className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">Respuesta de IA</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {isStreamingAI ? 'Generando...' : 'Generada automáticamente'}
+                      </p>
+                    </div>
+                  </div>
+                  {displayAiResponse && (
+                    <Button
+                      onClick={handleCopyResponse}
+                      variant={responseCopied ? "default" : "outline"}
+                      size="sm"
+                      className={responseCopied ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : ""}
+                    >
+                      {responseCopied ? (
+                        <>
+                          <FiCheck className="w-4 h-4 mr-2" />
+                          Copiado
+                        </>
+                      ) : (
+                        <>
+                          <FiCopy className="w-4 h-4 mr-2" />
+                          Copiar
+                        </>
+                      )}
+                    </Button>
                   )}
-                </Button>
-              </div>
-              
-              <div className="bg-sidebar-accent/30 border border-sidebar-border rounded-lg p-4 min-h-[200px]">
-                <div className="whitespace-pre-wrap text-sidebar-foreground leading-relaxed font-mono text-sm">
-                  {prompt}
+                </div>
+                
+                <div className="bg-muted/30 border border-border rounded-lg p-4 min-h-[200px]">
+                  {isStreamingAI && !displayAiResponse ? (
+                    <div className="flex items-center justify-center h-32">
+                      <div className="text-center">
+                        <FiRefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
+                        <p className="text-sm text-muted-foreground">Generando respuesta...</p>
+                      </div>
+                    </div>
+                  ) : displayAiResponse ? (
+                    <div className="relative">
+                      <div className="whitespace-pre-wrap text-foreground leading-relaxed">
+                        {displayAiResponse}
+                        {isStreamingAI && (
+                          <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
+                        )}
+                      </div>
+                      {isStreamingAI && (
+                        <div className="flex items-center mt-4 text-xs text-muted-foreground">
+                          <FiRefreshCw className="w-3 h-3 animate-spin mr-2" />
+                          <span>Escribiendo en tiempo real...</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-32">
+                      <p className="text-sm text-muted-foreground">No hay respuesta disponible</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button
+              {/* <Button
                 onClick={onBack}
                 variant="outline"
                 size="lg"
-                className="flex-1 border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                className="flex-1"
               >
                 <FiEdit3 className="w-4 h-4 mr-2" />
                 Editar Template
-              </Button>
-              <Button
+              </Button> */}
+              {/* <Button
                 onClick={onGenerate}
                 variant="outline"
                 size="lg"
-                className="flex-1 border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                className="flex-1"
               >
                 <FiRefreshCw className="w-4 h-4 mr-2" />
                 Regenerar
-              </Button>
+              </Button> */}
               <Button
-                onClick={handleGenerateWithAI}
+                onClick={responseMode === 'AI_RESPONSE' ? onGenerate : handleGenerateWithAI}
                 variant="outline"
                 size="lg"
-                className="flex-1 border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 text-blue-600"
+                className="flex-1"
                 disabled={!prompt || isLoading}
               >
                 {isLoading ? (
@@ -255,7 +346,7 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
                 ) : (
                   <>
                     <FiZap className="w-4 h-4 mr-2" />
-                    Generar con AI
+                    {responseMode === 'AI_RESPONSE' ? 'Regenerar con AI' : 'Generar con AI'}
                   </>
                 )}
               </Button>
@@ -263,7 +354,7 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
                 onClick={onReset}
                 variant="outline"
                 size="lg"
-                className="flex-1 border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 text-blue-600"
+                className="flex-1"
               >
                 <FiRotateCcw className="w-4 h-4 mr-2" />
                 Nuevo Prompt
@@ -278,7 +369,7 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FiZap className="w-5 h-5 text-blue-600" />
+              <FiZap className="w-5 h-5 text-primary" />
               Respuesta Generada con AI
             </DialogTitle>
           </DialogHeader>
@@ -287,8 +378,8 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
             {/* Prompt Section */}
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground">Prompt enviado:</h4>
-              <div className="bg-sidebar-accent/30 border border-sidebar-border rounded-lg p-3 max-h-32 overflow-y-auto">
-                <p className="text-sm whitespace-pre-wrap">{prompt}</p>
+              <div className="bg-muted/30 border border-border rounded-lg p-3 max-h-32 overflow-y-auto">
+                <p className="text-sm whitespace-pre-wrap text-foreground">{prompt}</p>
               </div>
             </div>
 
@@ -296,16 +387,12 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
             <div className="flex-1 flex flex-col space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium text-muted-foreground">Respuesta de AI:</h4>
-                {aiResponse && !isLoading && (
+                {displayAiResponse && !isLoading && (
                   <Button
                     onClick={handleCopyResponse}
                     variant={responseCopied ? "default" : "outline"}
                     size="sm"
-                    className={`${
-                      responseCopied
-                        ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
-                        : 'border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                    }`}
+                    className={responseCopied ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : ""}
                   >
                     {responseCopied ? (
                       <>
@@ -322,20 +409,20 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
                 )}
               </div>
               
-              <div ref={responseRef} className="flex-1 bg-sidebar-accent/30 border border-sidebar-border rounded-lg p-4 overflow-y-auto">
-                {isLoading && !aiResponse ? (
+              <div ref={responseRef} className="flex-1 bg-muted/30 border border-border rounded-lg p-4 overflow-y-auto">
+                {isLoading && !displayAiResponse ? (
                   <div className="flex items-center justify-center h-32">
                     <div className="text-center">
-                      <FiRefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-600" />
+                      <FiRefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
                       <p className="text-sm text-muted-foreground">Iniciando generación...</p>
                     </div>
                   </div>
-                ) : aiResponse ? (
+                ) : displayAiResponse ? (
                   <div className="relative">
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed max-h-[250px] ">
-                      {aiResponse}
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed max-h-[250px] text-foreground">
+                      {displayAiResponse}
                       {isLoading && (
-                        <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse" />
+                        <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
                       )}
                     </div>
                     {isLoading && (
@@ -362,10 +449,9 @@ export default function PromptDisplay({ prompt, onGenerate, onBack, onReset }: P
                 <FiX className="w-4 h-4 mr-2" />
                 Cerrar
               </Button>
-              {aiResponse && !isLoading && (
+              {displayAiResponse && !isLoading && (
                 <Button
                   onClick={handleCopyResponse}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <FiCopy className="w-4 h-4 mr-2" />
                   Copiar Respuesta
