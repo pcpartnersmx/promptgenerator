@@ -14,6 +14,9 @@ interface ProjectContextType {
   editingProject: PromptProject | null;
   setEditingProject: (project: PromptProject | null) => void;
   openProject: (project: PromptProject) => void;
+  formData: { [key: string]: string };
+  setFormData: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
+  clearFormData: () => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -24,10 +27,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [currentTab, setCurrentTab] = useState('form');
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [editingProject, setEditingProject] = useState<PromptProject | null>(null);
+  const [formData, setFormData] = useState<{ [key: string]: string }>({});
+
+  const clearFormData = () => {
+    setFormData({});
+  };
 
   const openProject = (project: PromptProject) => {
     setCurrentProject(project);
     setCurrentTab('form');
+    clearFormData(); // Limpiar el formulario al cambiar de proyecto
     // Asegura que estemos en la página principal donde se renderiza el editor
     router.push('/');
   };
@@ -44,6 +53,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         editingProject,
         setEditingProject,
         openProject,
+        formData,
+        setFormData,
+        clearFormData,
       }}
     >
       {children}

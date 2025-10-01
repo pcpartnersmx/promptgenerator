@@ -24,7 +24,8 @@ export default function Page() {
     isCreatingProject, 
     setIsCreatingProject, 
     editingProject, 
-    setEditingProject 
+    setEditingProject,
+    clearFormData
   } = useProject();
 
   // Use projects hook
@@ -130,6 +131,7 @@ export default function Page() {
     if (currentProject) {
       try {
         setCurrentProject(prev => prev ? { ...prev, generatedPrompt: '' } : null);
+        clearFormData();
         setCurrentTab('form');
       } catch (error) {
         // Error is already handled in the hook
@@ -288,8 +290,8 @@ export default function Page() {
                 }`}
               >
                 <FiSettings className="w-4 h-4" />
-                <span className="hidden sm:inline">Configuración</span>
-                <span className="sm:hidden">Config</span>
+                <span className="hidden sm:inline">Fomulario</span>
+                <span className="sm:hidden">Form</span>
               </button>
               {/* Solo mostrar Editor para usuarios ADMIN y EDITOR */}
               {session?.user?.role !== 'VIEWER' && (
@@ -352,7 +354,6 @@ export default function Page() {
                     <div className="p-6 h-full">
                       <FormComponent 
                         availableVariables={currentProject.availableVariables}
-                        formData={{}}
                         template={currentProject.template}
                         userRole={session?.user?.role}
                         onGeneratePrompt={handleGeneratePrompt}
@@ -405,7 +406,7 @@ export default function Page() {
                           // Generate with empty form data for template preview
                           handleGeneratePrompt({});
                         }}
-                        onBack={() => setCurrentTab('template')}
+                        onBack={() => setCurrentTab('form')}
                         onReset={handleResetForm}
                       />
                     </div>

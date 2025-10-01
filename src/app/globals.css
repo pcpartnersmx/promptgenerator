@@ -124,3 +124,12 @@
 button{
   cursor: pointer;
 }
+
+/* Toast custom styles */
+.toast-success [data-description] {
+  color: #666 !important;
+}
+
+.toast-error [data-description] {
+  color: #666 !important;
+}

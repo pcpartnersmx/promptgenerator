@@ -14,7 +14,6 @@ import {
   IconListDetails,
   IconReport,
   IconSearch,
-  IconSettings,
   IconUsers,
   
 } from "@tabler/icons-react"
@@ -111,13 +110,7 @@ const data = {
       ],
     },
   ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-  ],
+  navSecondary: [],
   documents: [
     {
       name: "Data Library",
@@ -164,6 +157,15 @@ export function AppSidebar({ projects = [], onOpenProject, onEditProject, onDele
     email: user.email || 'usuario@example.com',
     avatar: user.avatar_url || '/avatars/default.jpg',
   } : data.user;
+
+  // Create dynamic navSecondary based on user role
+  const navSecondary = user?.role === 'ADMIN' ? [
+    {
+      title: "Crear Usuario",
+      url: "/create-user",
+      icon: IconUsers,
+    },
+  ] : [];
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -315,7 +317,7 @@ export function AppSidebar({ projects = [], onOpenProject, onEditProject, onDele
           </SidebarMenu>
         </div>
         
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={userData} onLogout={handleLogout} />

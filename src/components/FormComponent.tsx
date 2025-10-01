@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FiArrowRight, FiCheck, FiAlertCircle, FiPlus } from 'react-icons/fi';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProject } from '@/contexts/project-context';
 
 type FormData = {
   [key: string]: string;
@@ -11,19 +12,14 @@ type FormData = {
 
 type FormComponentProps = {
   availableVariables: string[];
-  formData: FormData;
   template?: string;
   userRole?: string;
   onGeneratePrompt: (formData: FormData) => void;
 };
 
-export default function FormComponent({ availableVariables, formData: propFormData, template, userRole, onGeneratePrompt }: FormComponentProps) {
-  const [formData, setFormData] = useState<FormData>(propFormData);
+export default function FormComponent({ availableVariables, template, userRole, onGeneratePrompt }: FormComponentProps) {
+  const { formData, setFormData } = useProject();
   const [errors, setErrors] = useState<Partial<FormData>>({});
-
-  useEffect(() => {
-    setFormData(propFormData);
-  }, [propFormData]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -99,8 +95,8 @@ export default function FormComponent({ availableVariables, formData: propFormDa
           <FiCheck className="w-5 h-5 text-blue-600" />
         </div>
         <div>
-          <h2 className="text-2xl font-semibold text-black">Configuración del Prompt</h2>
-          <p className="text-gray-600 text-sm">Completa los campos para personalizar tu prompt</p>
+          <h2 className="text-2xl font-semibold text-black">Formulario</h2>
+          <p className="text-gray-600 text-sm">Completa los campos para generar el prompt</p>
         </div>
       </div>
       

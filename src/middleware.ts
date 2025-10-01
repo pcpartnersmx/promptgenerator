@@ -3,7 +3,14 @@ import { NextResponse } from 'next/server'
 
 export default withAuth(
   function middleware(req) {
-    // Add any additional middleware logic here if needed
+    const { pathname } = req.nextUrl
+    const token = req.nextauth.token
+    
+    // If user is authenticated and trying to access /login, redirect to home
+    if (token && pathname === '/login') {
+      return NextResponse.redirect(new URL('/', req.url))
+    }
+    
     return NextResponse.next()
   },
   {
