@@ -1,11 +1,4 @@
-import OpenAI from "openai";
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
 
 
 export async function POST(request: NextRequest) {  
@@ -15,7 +8,11 @@ export async function POST(request: NextRequest) {
 
     console.log("se esta generando la respuesta con IA")
     
-    return null
+    return NextResponse.json({ 
+        message: "Endpoint temporalmente deshabilitado" 
+    }, { 
+        status: 200 
+    });
 }
 
 
