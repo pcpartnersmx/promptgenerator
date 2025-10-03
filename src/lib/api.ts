@@ -100,19 +100,34 @@ export class ProjectsAPI {
 
   // Generar respuesta de IA
   static async generateAIResponse(prompt: string): Promise<{ aiResponse: string }> {
-    const response = await fetch('/api/openAi/generate-response', {
+    const response = await fetch('/api/openAi/prompt', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ input: prompt }),
     });
     
     if (!response.ok) {
       throw new Error('Error al generar la respuesta de IA');
     }
     
-    return response.json();
+    // Handle streaming text response
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = '';
+
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        fullResponse += chunk;
+      }
+    }
+    
+    return { aiResponse: fullResponse };
   }
 
   // Generar respuesta de IA con streaming
@@ -135,41 +150,17 @@ export class ProjectsAPI {
         throw new Error('Error al generar la respuesta de IA');
       }
 
+      // Handle streaming text response
       const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No se pudo obtener el stream de respuesta');
-      }
-
       const decoder = new TextDecoder();
-      let buffer = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              if (data.content) {
-                onChunk(data.content);
-              } else if (data.done) {
-                onComplete();
-                return;
-              } else if (data.error) {
-                onError(data.error);
-                return;
-              }
-            } catch (parseError) {
-              console.error('Error parsing SSE data:', parseError);
-            }
-          }
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          onChunk(chunk);
         }
       }
       

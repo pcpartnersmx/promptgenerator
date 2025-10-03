@@ -22,17 +22,58 @@ export default function PromptDisplay({ prompt, aiResponse: propAiResponse, resp
   const [localAiResponse, setLocalAiResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [responseCopied, setResponseCopied] = useState(false);
+  const [isSearchingWeb, setIsSearchingWeb] = useState(false);
   const responseRef = useRef<HTMLDivElement>(null);
+  const mainResponseRef = useRef<HTMLDivElement>(null);
 
   // Use prop AI response if available, otherwise use local state
   const displayAiResponse = propAiResponse || localAiResponse;
 
   // Auto-scroll al final del texto cuando se actualiza la respuesta
   useEffect(() => {
-    if (responseRef.current && displayAiResponse) {
-      responseRef.current.scrollTop = responseRef.current.scrollHeight;
+    const scrollToBottom = (element: HTMLDivElement) => {
+      setTimeout(() => {
+        element.scrollTop = element.scrollHeight;
+      }, 10);
+    };
+
+    if (displayAiResponse) {
+      // Scroll en el contenedor principal
+      if (mainResponseRef.current) {
+        scrollToBottom(mainResponseRef.current);
+      }
+      // Scroll en el modal
+      if (responseRef.current) {
+        scrollToBottom(responseRef.current);
+      }
     }
-  }, [displayAiResponse]);
+  }, [displayAiResponse, isStreamingAI]);
+
+  // Scroll suave durante el streaming
+  useEffect(() => {
+    if (isStreamingAI) {
+      const scrollToBottomSmooth = (element: HTMLDivElement) => {
+        element.scrollTo({
+          top: element.scrollHeight,
+          behavior: 'smooth'
+        });
+      };
+
+      const scrollBothContainers = () => {
+        if (mainResponseRef.current) {
+          scrollToBottomSmooth(mainResponseRef.current);
+        }
+        if (responseRef.current) {
+          scrollToBottomSmooth(responseRef.current);
+        }
+      };
+      
+      // Scroll cada vez que se actualiza el contenido durante streaming
+      const interval = setInterval(scrollBothContainers, 200);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isStreamingAI]);
 
   const handleCopy = async () => {
     try {
@@ -63,6 +104,7 @@ export default function PromptDisplay({ prompt, aiResponse: propAiResponse, resp
     }
     
     setIsLoading(true);
+    setIsSearchingWeb(true);
     setIsModalOpen(true);
     setLocalAiResponse(''); // Limpiar respuesta anterior
     
@@ -79,48 +121,34 @@ export default function PromptDisplay({ prompt, aiResponse: propAiResponse, resp
         throw new Error('Error al generar respuesta con AI');
       }
 
+      // Handle streaming text response
       const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No se pudo obtener el stream de respuesta');
-      }
-
       const decoder = new TextDecoder();
-      let buffer = '';
+      let fullResponse = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              if (data.content) {
-                setLocalAiResponse(prev => prev + data.content);
-              } else if (data.done) {
-                setIsLoading(false);
-                return;
-              } else if (data.error) {
-                throw new Error(data.error);
-              }
-            } catch (parseError) {
-              console.error('Error parsing SSE data:', parseError);
-            }
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          fullResponse += chunk;
+          setLocalAiResponse(fullResponse);
+          
+          // Simular que la búsqueda web toma tiempo
+          if (fullResponse.length > 100 && isSearchingWeb) {
+            setTimeout(() => setIsSearchingWeb(false), 2000);
           }
         }
       }
       
       setIsLoading(false);
+      setIsSearchingWeb(false);
     } catch (error) {
       console.error('Error:', error);
       setLocalAiResponse('Error al generar respuesta con AI. Por favor, inténtalo de nuevo.');
       setIsLoading(false);
+      setIsSearchingWeb(false);
     }
   };
 
@@ -253,7 +281,7 @@ export default function PromptDisplay({ prompt, aiResponse: propAiResponse, resp
                     <div>
                       <h3 className="text-lg font-semibold text-foreground">Respuesta de IA</h3>
                       <p className="text-sm text-muted-foreground">
-                        {isStreamingAI ? 'Generando...' : 'Generada automáticamente'}
+                        {isStreamingAI ? 'Generando...' : isSearchingWeb ? 'Buscando en internet...' : 'Generada automáticamente'}
                       </p>
                     </div>
                   </div>
@@ -284,12 +312,22 @@ export default function PromptDisplay({ prompt, aiResponse: propAiResponse, resp
                     <div className="flex items-center justify-center h-32">
                       <div className="text-center">
                         <FiRefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
-                        <p className="text-sm text-muted-foreground">Generando respuesta...</p>
+                        <p className="text-sm text-muted-foreground">
+                          {isSearchingWeb ? 'Buscando información en internet...' : 'Generando respuesta...'}
+                        </p>
+                        {isSearchingWeb && (
+                          <div className="mt-2 flex items-center justify-center gap-2 text-xs text-blue-600">
+                            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                            <span className="ml-1">Conectando con fuentes web...</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : displayAiResponse ? (
                     <div className="relative">
-                      <div className="whitespace-pre-wrap text-foreground leading-relaxed">
+                      <div ref={mainResponseRef} className="whitespace-pre-wrap text-foreground leading-relaxed max-h-[350px] overflow-y-auto">
                         {displayAiResponse}
                         {isStreamingAI && (
                           <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
